@@ -1,0 +1,33 @@
+{
+  "plugins": [
+    "jeremylongshore/claude-code-plugins-plus-skills"
+  ],
+  "mcp": {
+    "ruflo": {
+      "command": "npx",
+      "args": ["ruflo@latest", "mcp", "start"]
+    }
+  },
+  "hooks": {
+    "on-command": [
+      {
+        "match": "test",
+        "run": "npm run test"
+      },
+      {
+        "match": "lint",
+        "run": "npm run lint"
+      }
+    ]
+  },
+  "allowlist": {
+    "bash": [
+      "npm run dev",
+      "npm run build",
+      "npm run test",
+      "git status",
+      "git log",
+      "turbo run"
+    ]
+  }
+}

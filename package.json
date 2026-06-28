@@ -1,0 +1,26 @@
+{
+  "name": "bulk-direct",
+  "version": "1.0.0",
+  "description": "Premium B2B marketplace using Taste-Skill framework",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "web",
+    "landing"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "setup": "npm install && npm run build"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.0",
+    "prettier": "^3.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
