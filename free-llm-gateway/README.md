@@ -173,8 +173,25 @@ inactive and routing skips it, so an unconfigured install still works.
 | **Cerebras** | `cbr` | `CEREBRAS_API_KEY` | 5 RPM · no card | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
 | **Mistral AI** | `mist` | `MISTRAL_API_KEY` | no card | [console.mistral.ai](https://console.mistral.ai/api-keys) |
 | **DeepSeek** | `ds` | `DEEPSEEK_API_KEY` | dynamic | [platform.deepseek.com](https://platform.deepseek.com/api_keys) |
-| **OpenRouter** | `or` | `OPENROUTER_API_KEY` | `:free` models | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| **OpenRouter** | `or` | `OPENROUTER_API_KEY` | `:free` models — incl. **Kimi K2 / K2.6** | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | **xAI** | `xai` | `XAI_API_KEY` | credit-based | [console.x.ai](https://console.x.ai) |
+
+#### Kimi (Moonshot) — two routes
+
+| | Route | Cost | Models |
+|---|---|---|---|
+| **Free** | via OpenRouter | 0 | `moonshotai/kimi-k2:free`, `moonshotai/kimi-k2.6:free` |
+| Paid | `moonshot` direct | ~$3 / $15 per Mtok | `kimi-k3` (1M ctx), `kimi-k2.6`, `kimi-k2.7-code` |
+
+The `:free` suffix is part of the model ID, not decoration — without it OpenRouter
+bills the identical weights at full rate.
+
+`moonshot` is the only provider here that costs money, so it carries
+`billing: 'paid'` and **routing never reaches it on its own**: it is excluded
+from every fallback chain and from the last-resort branch. It answers a request
+that names `provider: 'moonshot'`, or one that names a model only it carries —
+and even then a free passthrough gets first refusal until discovery has run.
+Set `MOONSHOT_API_KEY` to enable it at all.
 
 #### Configure once per machine, not once per project
 

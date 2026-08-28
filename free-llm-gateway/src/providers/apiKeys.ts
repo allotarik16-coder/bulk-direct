@@ -27,6 +27,7 @@ export const PROVIDER_API_KEY_ENV: Record<string, string> = {
   gemini: 'GEMINI_API_KEY',
   opencode: 'OPENCODE_API_KEY',
   aihorde: 'AIHORDE_API_KEY',
+  moonshot: 'MOONSHOT_API_KEY',
 };
 
 /** Where to register, surfaced by check:live so a missing key is actionable. */
@@ -40,6 +41,7 @@ export const PROVIDER_SIGNUP_URL: Record<string, string> = {
   gemini: 'https://aistudio.google.com/apikey',
   opencode: 'https://opencode.ai',
   aihorde: 'https://stablehorde.net/register',
+  moonshot: 'https://platform.kimi.ai',
 };
 
 export function getApiKey(providerId: string): string | undefined {

@@ -114,9 +114,21 @@ export class FreeLLMRouter {
       }
     }
 
-    // Fallback: sort all active providers by priority
+    // No free provider carries this model. A paid one may — but only when the
+    // caller named the model explicitly, which is a decision to spend; the
+    // wildcard paths below must never make that decision on their own.
+    const paidMatch = Object.values(FREE_LLM_PROVIDERS).find(
+      (p) => p.billing === 'paid' && this.canProviderServe(p, request.model)
+    );
+    if (paidMatch) {
+      return { provider: paidMatch, model: request.model };
+    }
+
+    // Last resort: any healthy provider, serving whatever model it lists first.
+    // This ignores request.model, so a paid provider reached here would be both
+    // unrequested AND answering a different question — billed, and wrong.
     const sortedProviders = Object.values(FREE_LLM_PROVIDERS)
-      .filter((p) => p.isActive && this.healthStatus.get(p.id)?.healthy !== false)
+      .filter((p) => p.isActive && p.billing !== 'paid' && this.healthStatus.get(p.id)?.healthy !== false)
       .sort((a, b) => routingStrategy.priority(a) - routingStrategy.priority(b));
 
     if (sortedProviders.length === 0) {

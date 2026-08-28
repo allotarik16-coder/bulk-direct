@@ -225,7 +225,15 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     transport: 'passthrough',
     proxySupported: true,
     isActive: hasApiKey('openrouter'),
+    // The `:free` suffix is load-bearing — it selects OpenRouter's zero-cost
+    // endpoint for the same weights. Drop it and the identical model bills at
+    // full rate, so these IDs are copied verbatim, never "tidied".
+    //
+    // This is the free route to Kimi: same Moonshot weights as the `moonshot`
+    // provider below, one OpenRouter key instead of a paid Moonshot account.
     models: [
+      textModel('moonshotai/kimi-k2:free', 'Kimi K2 (free)', 'Kimi K2 — OpenRouter free tier'),
+      textModel('moonshotai/kimi-k2.6:free', 'Kimi K2.6 (free)', 'Kimi K2.6 — OpenRouter free tier'),
       textModel('meta-llama/llama-3.3-70b-instruct:free', 'Llama 3.3 70B (free)', 'Llama 3.3 70B Instruct — free tier'),
     ],
     rateLimit: { type: 'unknown' },
@@ -239,6 +247,68 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     proxySupported: true,
     isActive: hasApiKey('xai'),
     models: [textModel('grok-beta', 'Grok', 'Grok (beta)')],
+    rateLimit: { type: 'unknown' },
+  },
+  // ---------------------------------------------------------------------
+  // Paid provider. Present because its rate limits and context windows are
+  // far beyond any free tier, but it bills per token, so `billing: 'paid'`
+  // keeps routing away from it: it answers only a request that names it, or
+  // names one of the models below. The free path to the same weights is
+  // openrouter's `moonshotai/kimi-*:free`.
+  //
+  // Prices below are list rates per Mtok (input/output) as published in
+  // August 2026, recorded to make the cost visible at the call site — they
+  // are not fetched, so treat them as indicative, not billing truth.
+  // ---------------------------------------------------------------------
+  moonshot: {
+    id: 'moonshot',
+    alias: 'kimi',
+    name: 'Moonshot AI (Kimi)',
+    website: 'https://platform.kimi.ai',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('moonshot'),
+    billing: 'paid',
+    models: [
+      {
+        id: 'kimi-k3',
+        name: 'Kimi K3',
+        displayName: 'Kimi K3 (1M context, multimodal)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 3,
+        note: 'Payant : ~$3 in / $15 out par Mtok',
+      },
+      {
+        id: 'kimi-k2.6',
+        name: 'Kimi K2.6',
+        displayName: 'Kimi K2.6 (262k context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 0.95,
+        note: 'Payant : ~$0.95 in / $4 out par Mtok',
+      },
+      {
+        id: 'kimi-k2.7-code',
+        name: 'Kimi K2.7 Code',
+        displayName: 'Kimi K2.7 Code (code-tuned)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+        ],
+        costPerMTok: 0.95,
+        note: 'Payant. kimi-k2.5 et la série moonshot-v1 sont retirées au 31/08/2026 — absentes ici volontairement',
+      },
+    ],
     rateLimit: { type: 'unknown' },
   },
   gemini: {
@@ -265,6 +335,10 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
 // or bot-check is added upstream. Ones with no key configured are inactive and
 // skipped by canProviderServe, so an unkeyed install falls through to the free
 // anonymous providers exactly as before.
+//
+// `moonshot` is deliberately absent: it bills per token, and a fallback chain
+// is exactly the path that would reach it without anyone deciding to spend.
+// It is reachable by naming it, or by naming a Kimi model only it carries.
 export const PROVIDER_FALLBACK_CHAIN = [
   'groq',
   'cerebras',
