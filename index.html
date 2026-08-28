@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BulkDirect - Premium B2B Marketplace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-light: #2563eb;
+            --accent: #d97706;
+            --fg: #1f2937;
+            --fg-muted: #6b7280;
+            --bg: #ffffff;
+            --bg-alt: #f9fafb;
+            --border: #e5e7eb;
+        }
+
+        html[data-theme="clair"] {
+            --fg: #f9fafb;
+            --fg-muted: #d1d5db;
+            --bg: #0f172a;
+            --bg-alt: #1e293b;
+            --border: #334155;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            color: var(--fg);
+            line-height: 1.6;
+            background: var(--bg);
+            transition: background 0.35s ease, color 0.35s ease;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-group {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--fg);
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        .nav-cta {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .nav-cta:hover {
+            background: var(--primary-light);
+        }
+
+        #themeToggle {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+        }
+
+        #themeToggle:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        #themeToggle svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 2rem;
+            background: var(--bg-alt);
+        }
+
+        .hero-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 1.5rem;
+            color: var(--fg);
+            line-height: 1.15;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--fg-muted);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.2);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .hero-image {
+            margin-top: 3rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .hero-image-text {
+            font-size: 1.125rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--fg);
+            font-weight: 700;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--fg-muted);
+            font-size: 1.125rem;
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            background: var(--bg-alt);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(30, 64, 175, 0.08);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 0.375rem;
+            color: white;
+        }
+
+        .feature-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: var(--fg-muted);
+            line-height: 1.7;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: var(--bg-alt);
+        }
+
+        .how-it-works-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border-radius: 0.375rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .step h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .step p {
+            color: var(--fg-muted);
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 4rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .stat-item p {
+            color: var(--fg-muted);
+            font-size: 1.1rem;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 4rem 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+        }
+
+        .cta h2 {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .cta p {
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .cta .btn-secondary {
+            background: white;
+            color: var(--primary);
+            border: none;
+        }
+
+        .cta .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            background: var(--fg);
+            color: var(--bg);
+            text-align: center;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                display: none;
+            }
+
+            .hero-image {
+                height: 250px;
+            }
+        }
+    </style>
+    <script>
+        (function(){
+            var saved = localStorage.getItem('theme');
+            var p = new URLSearchParams(location.search).get('theme');
+            var t = p || saved || 'base';
+            if (t !== 'base') document.documentElement.dataset.theme = t;
+        })();
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">BulkDirect</div>
+        <div class="nav-group">
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how">How It Works</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <button id="themeToggle" aria-pressed="false" aria-label="Switch to light mode">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+                </svg>
+            </button>
+            <a href="https://github.com/bobsd84000-pixel/BulkDirect" class="nav-cta">GitHub</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Connect with Bulk Buyers & Sellers</h1>
+            <p>BulkDirect is the premium B2B marketplace where businesses find reliable partners for large-scale transactions.</p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary">Start Selling</button>
+                <button class="btn btn-secondary">Find Products</button>
+            </div>
+            <div class="hero-image">
+                <div class="hero-image-text">Your B2B Marketplace</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <h2 class="section-title">Why Choose BulkDirect?</h2>
+        <p class="section-subtitle">Everything you need for seamless bulk trading in one platform</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h3>Verified Traders</h3>
+                <p>All buyers and sellers are verified and vetted to ensure trustworthy business relationships and secure transactions.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 4l-4-2-4 2"/>
+                    </svg>
+                </div>
+                <h3>Bulk Transactions</h3>
+                <p>Specialized tools designed for large-scale orders with flexible payment terms and logistics support.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </div>
+                <h3>Global Network</h3>
+                <p>Connect with businesses worldwide. Access international suppliers and expand your customer base globally.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <polyline points="19 12 12 19 5 12"/>
+                    </svg>
+                </div>
+                <h3>Advanced Analytics</h3>
+                <p>Real-time insights into market trends, pricing data, and buyer behavior to make informed business decisions.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="1"/>
+                        <path d="M12 7v5M9 10h6"/>
+                    </svg>
+                </div>
+                <h3>Quick Matching</h3>
+                <p>Our intelligent system matches you with ideal trading partners based on your requirements and preferences.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <h3>Secure Escrow</h3>
+                <p>Protected transactions with escrow services ensuring payment security and order fulfillment for all parties.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how">
+        <div class="how-it-works-container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Get started in just a few simple steps</p>
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Create Account</h3>
+                    <p>Sign up and complete your business profile with verification documents</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Browse & List</h3>
+                    <p>Explore available products or list your inventory to reach buyers</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Connect</h3>
+                    <p>Communicate with verified traders and negotiate bulk deals</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Complete Trade</h3>
+                    <p>Process payments securely and arrange logistics with confidence</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h2>50K+</h2>
+                <p>Active Traders</p>
+            </div>
+            <div class="stat-item">
+                <h2>$2.5B</h2>
+                <p>Annual Trading Volume</p>
+            </div>
+            <div class="stat-item">
+                <h2>150+</h2>
+                <p>Countries</p>
+            </div>
+            <div class="stat-item">
+                <h2>99.8%</h2>
+                <p>Transaction Success Rate</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <h2>Ready to Scale Your Business?</h2>
+        <p>Join thousands of businesses already growing with BulkDirect</p>
+        <button class="btn btn-secondary">Get Started Free</button>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 BulkDirect. All rights reserved. | <a href="https://github.com/bobsd84000-pixel/BulkDirect">GitHub</a></p>
+    </footer>
+
+    <script>
+        var SUN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+        var MOON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+
+        function updateToggle(theme) {
+            var btn = document.getElementById('themeToggle');
+            var isClair = theme === 'clair';
+            btn.innerHTML = isClair ? MOON : SUN;
+            btn.setAttribute('aria-pressed', String(isClair));
+            btn.setAttribute('aria-label', isClair ? 'Switch to dark mode' : 'Switch to light mode');
+        }
+
+        function setTheme(theme) {
+            if (theme && theme !== 'base') {
+                document.documentElement.dataset.theme = theme;
+            } else {
+                delete document.documentElement.dataset.theme;
+            }
+            localStorage.setItem('theme', theme);
+            updateToggle(theme);
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', function(){
+            var current = document.documentElement.dataset.theme || 'base';
+            setTheme(current === 'base' ? 'clair' : 'base');
+        });
+
+        updateToggle(document.documentElement.dataset.theme || 'base');
+    </script>
+</body>
+</html>
