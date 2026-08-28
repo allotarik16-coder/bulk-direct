@@ -1,19 +1,14 @@
-# Sends one real request to each routable free LLM provider and prints what
-# came back, so the endpoints in free-llm-gateway can be confirmed against
-# live responses instead of staying transcribed-but-unverified.
+# Manual only. Sends one real request to each routable free LLM provider and
+# prints what came back, so the endpoints in free-llm-gateway can be confirmed
+# against live responses instead of staying transcribed-but-unverified.
 #
-# push here is TEMPORARY (one-shot, to run the improved-diagnostics version) —
-# gets removed right after this run. Normally workflow_dispatch-only since
-# this reaches third-party hosts on every fire.
+# Nothing runs on push: this reaches third-party hosts, so it fires only when
+# someone clicks "Run workflow".
 
 name: Check free LLM providers (live)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/check-free-llm-live.yml'
 
 jobs:
   check:
