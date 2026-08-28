@@ -45,9 +45,9 @@ async function testGateway() {
     console.log(`  Found Claude: ${claudeModel.provider.name}`);
   }
 
-  const kimiModel = await gateway.findModel('kimi');
+  const kimiModel = await gateway.findModel('claude-fable-5');
   if (kimiModel) {
-    console.log(`  Found Kimi: ${kimiModel.provider.name}`);
+    console.log(`  Found Claude Fable 5: ${kimiModel.provider.name}`);
   }
   console.log();
 

@@ -38,7 +38,7 @@ console.log(response.content);
 // Use only OpenCode (direct HTTP, no browser)
 const response = await gateway.execute({
   provider: 'opencode',
-  model: 'kimi',
+  model: 'claude-fable-5',
   messages: [{ role: 'user', content: 'Hello' }],
 });
 ```
@@ -118,7 +118,7 @@ gateway.resetProviderHealth('opencode');
 
 // Now it will be considered healthy again and included in routing
 const response = await gateway.execute({
-  model: 'kimi',
+  model: 'claude-fable-5',
   messages: [{ role: 'user', content: 'Hello' }],
 });
 ```

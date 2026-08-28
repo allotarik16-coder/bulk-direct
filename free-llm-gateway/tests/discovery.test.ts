@@ -35,9 +35,9 @@ async function testDiscovery() {
     console.log(`  "claude" not found`);
   }
 
-  const kittyModel = await discovery.findModel('kimi');
+  const kittyModel = await discovery.findModel('claude-fable-5');
   if (kittyModel) {
-    console.log(`  Found "kimi": ${kittyModel.provider.name} → ${kittyModel.model.displayName}`);
+    console.log(`  Found "claude-fable-5": ${kittyModel.provider.name} → ${kittyModel.model.displayName}`);
   }
   console.log();
 
