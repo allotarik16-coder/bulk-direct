@@ -36,15 +36,19 @@ test('the catalog actually has a paid provider to guard', async () => {
   assert.equal(FREE_LLM_PROVIDERS.moonshot.isActive, true, 'the test key should activate it');
 });
 
-test('no paid provider sits in the fallback chain', async () => {
-  const { PROVIDER_FALLBACK_CHAIN, paidIds } = await load();
+test('a paid provider is auto-routed only where it was deliberately placed', async () => {
+  const { PROVIDER_FALLBACK_CHAIN } = await load();
 
-  for (const id of paidIds) {
-    assert.ok(
-      !PROVIDER_FALLBACK_CHAIN.includes(id),
-      `${id} bills per token; a fallback chain would reach it without anyone deciding to spend`
-    );
-  }
+  // Claude is the declared primary — being at the head of the chain is the
+  // whole point, and it only appears at all when its key is set.
+  assert.equal(PROVIDER_FALLBACK_CHAIN[0], 'anthropic');
+
+  // Moonshot was never asked to be primary, so reaching it must stay an
+  // explicit decision: naming the provider, or naming a Kimi model.
+  assert.ok(
+    !PROVIDER_FALLBACK_CHAIN.includes('moonshot'),
+    'moonshot bills per token and nothing declared it primary'
+  );
 });
 
 test('a free passthrough gets first refusal on a Kimi model', async () => {

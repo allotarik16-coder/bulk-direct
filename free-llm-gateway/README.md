@@ -18,6 +18,43 @@ A unified, zero-cost AI gateway that aggregates **9+ free LLM providers** with i
 
 ---
 
+## Claude first, free providers as the safety net
+
+Set `ANTHROPIC_API_KEY` and Claude becomes the primary. When its quota runs
+out, the same request is served by a free provider instead of failing — the
+caller gets an answer, not a 429.
+
+```bash
+npm run keys:set anthropic sk-ant-...
+```
+
+Quota exhaustion is treated as its own kind of failure, separate from the two
+the gateway already tracked:
+
+| Signal | What happens | Provider health |
+|---|---|---|
+| `404` model not found | that model is locked, provider keeps serving others | unchanged |
+| `429` / `529` / credits spent | provider cools down, next in chain serves the request | **unchanged — this is not a fault** |
+| `5xx`, timeouts | counts toward health; unhealthy after 3 in a row | degraded |
+| `401` bad key | **throws** — never a silent downgrade | degraded |
+
+A spent quota is not an outage: it is expected, and it heals on a known
+schedule. Folding it into health would need three failed requests to trigger,
+and would leave Claude marked dead long after its window reset. The cooldown
+honours the API's `retry-after` header, and expires on its own.
+
+A bad key is deliberately *not* a failover: silently answering from a weaker
+free model would hide the broken credential behind worse output, which is much
+harder to notice than a failed request.
+
+`gateway.cooldownEndsAt('anthropic')` reports when Claude is expected back.
+
+> **Scope.** This covers API calls your own code makes. It cannot extend or take
+> over a claude.ai or Claude Code subscription session — nothing outside the
+> Anthropic API can serve that conversation.
+
+---
+
 ## Two ways to use it
 
 **As a service (recommended for more than one project).** Deploy the gateway

@@ -28,6 +28,7 @@ export const PROVIDER_API_KEY_ENV: Record<string, string> = {
   opencode: 'OPENCODE_API_KEY',
   aihorde: 'AIHORDE_API_KEY',
   moonshot: 'MOONSHOT_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
 };
 
 /** Where to register, surfaced by check:live so a missing key is actionable. */
@@ -42,6 +43,7 @@ export const PROVIDER_SIGNUP_URL: Record<string, string> = {
   opencode: 'https://opencode.ai',
   aihorde: 'https://stablehorde.net/register',
   moonshot: 'https://platform.kimi.ai',
+  anthropic: 'https://console.anthropic.com/settings/keys',
 };
 
 export function getApiKey(providerId: string): string | undefined {

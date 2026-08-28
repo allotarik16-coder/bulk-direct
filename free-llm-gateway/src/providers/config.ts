@@ -250,6 +250,67 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     rateLimit: { type: 'unknown' },
   },
   // ---------------------------------------------------------------------
+  // Claude — the primary, with everything else as its safety net.
+  //
+  // Paid, but unlike `moonshot` below it sits at the HEAD of the fallback
+  // chain rather than being excluded from it. Setting ANTHROPIC_API_KEY is a
+  // deliberate act, and the point of this provider is to be preferred: when
+  // its quota runs out the router puts it on cooldown and the free providers
+  // behind it serve the same request until the window resets.
+  // ---------------------------------------------------------------------
+  anthropic: {
+    id: 'anthropic',
+    alias: 'claude',
+    name: 'Claude (Anthropic)',
+    website: 'https://claude.com',
+    transport: 'anthropic-sdk',
+    proxySupported: true,
+    isActive: hasApiKey('anthropic'),
+    billing: 'paid',
+    models: [
+      {
+        id: 'claude-opus-5',
+        name: 'Claude Opus 5',
+        displayName: 'Claude Opus 5 (1M context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 5,
+        note: 'Payant : $5 in / $25 out par Mtok',
+      },
+      {
+        id: 'claude-sonnet-5',
+        name: 'Claude Sonnet 5',
+        displayName: 'Claude Sonnet 5 (1M context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 2,
+        note: 'Payant : $2 in / $10 out par Mtok',
+      },
+      {
+        id: 'claude-haiku-4-5',
+        name: 'Claude Haiku 4.5',
+        displayName: 'Claude Haiku 4.5 (200k context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+        ],
+        costPerMTok: 1,
+        note: 'Payant : $1 in / $5 out par Mtok',
+      },
+    ],
+    rateLimit: { type: 'per-session' },
+  },
+
+  // ---------------------------------------------------------------------
   // Paid provider. Present because its rate limits and context windows are
   // far beyond any free tier, but it bills per token, so `billing: 'paid'`
   // keeps routing away from it: it answers only a request that names it, or
@@ -336,10 +397,17 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
 // skipped by canProviderServe, so an unkeyed install falls through to the free
 // anonymous providers exactly as before.
 //
-// `moonshot` is deliberately absent: it bills per token, and a fallback chain
-// is exactly the path that would reach it without anyone deciding to spend.
-// It is reachable by naming it, or by naming a Kimi model only it carries.
+// `anthropic` leads: it is the primary, and everything after it is what serves
+// the request once its quota is spent. That it also bills per token is fine —
+// being in this list IS the opt-in, and it only appears here when a key is set.
+//
+// `moonshot` is deliberately absent for the opposite reason: nobody asked for
+// it to be primary, so reaching it must stay an explicit decision. A paid
+// provider is auto-routed only where it was deliberately placed, and the
+// last-resort branch in router.route — which ignores the requested model —
+// excludes every paid provider regardless.
 export const PROVIDER_FALLBACK_CHAIN = [
+  'anthropic',
   'groq',
   'cerebras',
   'gemini',

@@ -18,6 +18,16 @@ export class FreeLLMRouter {
   /** `providerId:modelId` -> epoch ms when the lockout lifts. */
   private modelLockouts: Map<string, number> = new Map();
   private modelLockoutMs = 15 * 60 * 1000;
+  /**
+   * `providerId` -> epoch ms when an exhausted quota is expected back.
+   *
+   * The third failure category, and the one that makes failover work. A spent
+   * quota is neither a bug nor an outage: it is expected, and it heals on a
+   * known schedule. Folding it into health would need three requests to
+   * trigger — three real failures a user waits through — and would then leave
+   * the provider marked dead long after its window reset.
+   */
+  private providerCooldowns: Map<string, number> = new Map();
 
   constructor() {
     this.initializeHealthStatus();
@@ -152,6 +162,10 @@ export class FreeLLMRouter {
     // Catalogued but not routable: no executor, or no verified endpoint.
     if (!provider.isActive) return false;
 
+    // Out of quota until its window resets — this is what makes the next
+    // provider in the chain get the request instead.
+    if (this.isCoolingDown(provider.id)) return false;
+
     const health = this.healthStatus.get(provider.id);
     if (health && !health.healthy && health.consecutiveFailures > 3) {
       return false; // Provider is too unhealthy
@@ -188,6 +202,38 @@ export class FreeLLMRouter {
    */
   lockModel(providerId: string, modelId: string, ttlMs: number = this.modelLockoutMs) {
     this.modelLockouts.set(`${providerId}:${modelId}`, Date.now() + ttlMs);
+  }
+
+  /**
+   * Take a provider out of rotation until its quota window resets.
+   *
+   * Health is deliberately left untouched: the provider is working perfectly,
+   * it just has nothing left to give right now. Marking it unhealthy would
+   * outlast the reset and keep routing away from it once it recovered.
+   */
+  recordQuotaExhausted(providerId: string, retryAfterMs: number) {
+    this.providerCooldowns.set(providerId, Date.now() + retryAfterMs);
+
+    const health = this.healthStatus.get(providerId);
+    if (health) {
+      health.lastError = `quota exhausted, retry in ${Math.round(retryAfterMs / 1000)}s`;
+      health.lastCheckTime = new Date();
+      health.consecutiveFailures = 0;
+    }
+  }
+
+  /** True while a provider is waiting out an exhausted quota. */
+  isCoolingDown(providerId: string): boolean {
+    const until = this.providerCooldowns.get(providerId);
+    if (until === undefined) return false;
+    if (until > Date.now()) return true;
+    this.providerCooldowns.delete(providerId); // lazily expire, like model lockouts
+    return false;
+  }
+
+  /** When the provider is expected back, or null if it is available now. */
+  cooldownEndsAt(providerId: string): Date | null {
+    return this.isCoolingDown(providerId) ? new Date(this.providerCooldowns.get(providerId)!) : null;
   }
 
   isModelLocked(providerId: string, modelId: string): boolean {

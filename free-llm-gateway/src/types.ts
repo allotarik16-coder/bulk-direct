@@ -38,6 +38,8 @@ export interface ModelCapability {
 export type TransportType =
   | 'direct-http'
   | 'custom-http'
+  /** Anthropic's own SDK — needed for typed quota errors, see anthropicExecutor. */
+  | 'anthropic-sdk'
   | 'browser-automation'
   | 'reverse-engineered'
   | 'passthrough'
