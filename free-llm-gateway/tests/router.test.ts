@@ -38,7 +38,7 @@ async function testRouter() {
   console.log('✓ Test 4: Route with specific provider (opencode)');
   const route2 = await router.route(
     {
-      model: 'kimi',
+      model: 'claude-fable-5',
       provider: 'opencode',
       messages: [{ role: 'user', content: 'hello' }],
     },

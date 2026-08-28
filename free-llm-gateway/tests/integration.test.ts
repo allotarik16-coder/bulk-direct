@@ -87,7 +87,7 @@ test.after(() => server.close());
 test('a request goes out and an answer comes back', async () => {
   const gateway = new FreeLLMGateway();
   const res = await gateway.execute({
-    model: 'kimi',
+    model: 'claude-fable-5',
     provider: 'opencode',
     messages: [{ role: 'user', content: 'ping' }],
   });
@@ -100,13 +100,13 @@ test('a request goes out and an answer comes back', async () => {
 test('the outgoing body carries model and messages', async () => {
   const gateway = new FreeLLMGateway();
   await gateway.execute({
-    model: 'kimi',
+    model: 'claude-fable-5',
     provider: 'opencode',
     messages: [{ role: 'user', content: 'ping' }],
   });
 
   const sent = JSON.parse(lastRequest!.body);
-  assert.equal(sent.model, 'kimi');
+  assert.equal(sent.model, 'claude-fable-5');
   assert.deepEqual(sent.messages, [{ role: 'user', content: 'ping' }]);
 });
 
@@ -183,7 +183,7 @@ test('routing falls through to a working provider', async () => {
 
   // opencode answers; ask for a model only it lists, with no provider pinned.
   const res = await gateway.execute({
-    model: 'kimi',
+    model: 'claude-fable-5',
     messages: [{ role: 'user', content: 'ping' }],
   });
 

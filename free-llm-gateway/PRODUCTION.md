@@ -23,7 +23,7 @@ const executor = new HTTPExecutor(
 );
 
 const response = await executor.execute({
-  model: 'kimi',
+  model: 'claude-fable-5',
   messages: [{ role: 'user', content: 'Hello' }],
 });
 

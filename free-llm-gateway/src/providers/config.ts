@@ -13,12 +13,13 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     transport: 'direct-http',
     proxySupported: true,
     isActive: true,
+    // Confirmed live via /zen/v1/models on 2026-08-28: this proxies real Claude
+    // models, not the Kimi/GLM/Qwen lineup the OmniRoute transcription implied.
     models: [
-      { id: 'kimi', name: 'Kimi', displayName: 'Kimi by Moonshot', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
-      { id: 'glm', name: 'GLM', displayName: 'GLM 4 by Zhipu', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
-      { id: 'qwen', name: 'Qwen', displayName: 'Qwen by Alibaba', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
-      { id: 'mimx', name: 'MiMo', displayName: 'MiMo', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
-      { id: 'minimax', name: 'MiniMax', displayName: 'MiniMax Model', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
+      { id: 'claude-fable-5', name: 'Claude Fable 5', displayName: 'Claude Fable 5 (via OpenCode Zen)', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
+      { id: 'claude-opus-5', name: 'Claude Opus 5', displayName: 'Claude Opus 5 (via OpenCode Zen)', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
+      { id: 'claude-opus-4-8', name: 'Claude Opus 4.8', displayName: 'Claude Opus 4.8 (via OpenCode Zen)', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
+      { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', displayName: 'Claude Opus 4.7 (via OpenCode Zen)', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
     ],
     rateLimit: { type: 'per-ip', limit: 100, window: 3600 },
   },
@@ -82,8 +83,10 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     transport: 'passthrough',
     proxySupported: false,
     isActive: true,
+    // Confirmed live via /v1/models on 2026-08-28: the previous "hermes-llama-3.1"
+    // ID 404s — this vllm deployment now serves a different model.
     models: [
-      { id: 'hermes-llama-3.1', name: 'Hermes 3 Llama 3.1', displayName: 'Hermes-3-Llama-3.1-8B-AWQ', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
+      { id: 'Lorbus/Qwen3.6-27B-int4-AutoRound', name: 'Qwen3.6 27B (int4)', displayName: 'Qwen3.6-27B-int4-AutoRound', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
     ],
     rateLimit: { type: 'unknown' },
   },
@@ -95,8 +98,12 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     transport: 'passthrough',
     proxySupported: false,
     isActive: true,
+    // "horde-stable" never existed as a text model (it read as an image-gen
+    // ID transcribed into the wrong catalog). Workers are crowdsourced and
+    // rotate constantly, so any hardcoded ID here will go stale again — this
+    // one was live via /v1/models on 2026-08-28, not a stable guarantee.
     models: [
-      { id: 'horde-stable', name: 'Stable Diffusion', displayName: 'Stable Diffusion (Horde)', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0, note: 'Crowdsourced inference' },
+      { id: 'aphrodite/SicariusSicariiStuff/Impish_Bloodmoon_12B', name: 'Impish Bloodmoon 12B', displayName: 'Impish_Bloodmoon_12B (Horde, crowdsourced)', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0, note: 'Crowdsourced inference; model availability rotates — re-check /v1/models if this 404s' },
     ],
     rateLimit: { type: 'shared-queue' },
   },

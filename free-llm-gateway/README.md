@@ -68,7 +68,7 @@ const response = await gateway.execute(
 const allModels = await gateway.getAllModels();
 console.log(allModels);
 // Output: [
-//   { provider: { id: 'opencode', ... }, model: { id: 'kimi', ... } },
+//   { provider: { id: 'opencode', ... }, model: { id: 'claude-fable-5', ... } },
 //   { provider: { id: 'opencode', ... }, model: { id: 'glm', ... } },
 //   ...
 // ]
