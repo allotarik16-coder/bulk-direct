@@ -9,8 +9,27 @@
  */
 import { FreeLLMGateway } from '../src/gateway';
 import { FREE_LLM_PROVIDERS } from '../src/providers/config';
+import { PROVIDER_ENDPOINTS } from '../src/providers/endpoints';
 
 const PROMPT = 'Réponds exactement: BONJOUR';
+
+/**
+ * A model ID we invented from a stale/guessed catalog reads identically to a
+ * dead provider ("Model not found" either way). Fetching the real list turns
+ * that ambiguity into an actual fix: the correct ID to put in config.ts.
+ */
+async function probeRealModels(providerId: string): Promise<void> {
+  const modelsUrl = PROVIDER_ENDPOINTS[providerId]?.models;
+  if (!modelsUrl) return;
+
+  try {
+    const res = await fetch(modelsUrl, { signal: AbortSignal.timeout(10000) });
+    const body = await res.text();
+    console.log(`   [models@${providerId}] HTTP ${res.status}: ${body.slice(0, 300)}\n`);
+  } catch (error) {
+    console.log(`   [models@${providerId}] fetch failed: ${(error as Error).message}\n`);
+  }
+}
 
 async function main() {
   const gateway = new FreeLLMGateway();
@@ -38,6 +57,7 @@ async function main() {
     } catch (error) {
       console.log(`❌ ${pad(provider.name)} ${pad(model, 20)} ${Date.now() - started}ms`);
       console.log(`   ${(error as Error).message}\n`);
+      await probeRealModels(provider.id);
     }
   }
 
