@@ -1,0 +1,3 @@
+[submodule "omniroute"]
+	path = omniroute
+	url = https://github.com/diegosouzapw/omniroute
