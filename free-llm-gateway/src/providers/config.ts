@@ -1,5 +1,9 @@
 import { FreeLLMProvider } from '../types';
 
+// INVARIANT: each record key must equal its `id`. The router, executor factory,
+// endpoint table and health map all address providers by that one string; when
+// they drifted apart ("felo" vs "felo-web"), felo threw at executor creation and
+// its health tracking silently no-opped. Guarded by tests/customHttp.test.ts.
 export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
   opencode: {
     id: 'opencode',
@@ -19,13 +23,16 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     rateLimit: { type: 'per-ip', limit: 100, window: 3600 },
   },
   duckduckgo: {
-    id: 'duckduckgo-web',
+    id: 'duckduckgo',
     alias: 'ddgw',
     name: 'DuckDuckGo AI Chat',
     website: 'https://duckduckgo.com/duckchat',
+    // Also plain HTTP upstream (VQD token via GET /duckchat/v1/status), but
+    // reaching it needs the anti-bot challenge solver + fe-version tracking
+    // that OmniRoute keeps in a dedicated 312-line module. Not ported.
     transport: 'browser-automation',
     proxySupported: false,
-    isActive: false, // no executor yet (see executors/index.ts)
+    isActive: false, // needs the VQD challenge solver
     models: [
       { id: 'gpt-4o', name: 'GPT-4o', displayName: 'GPT-4o (via DuckDuckGo)', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
       { id: 'claude', name: 'Claude', displayName: 'Claude by Anthropic', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
@@ -33,7 +40,7 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     rateLimit: { type: 'per-session', limit: 50, window: 3600 },
   },
   cloudflare: {
-    id: 'cloudflare-playground',
+    id: 'cloudflare',
     alias: 'cfp',
     name: 'Cloudflare AI Playground',
     website: 'https://playground.ai.cloudflare.com',
@@ -53,11 +60,12 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     alias: 'tllm',
     name: 'The Old LLM',
     website: 'https://theoldllm.vercel.app',
-    transport: 'browser-automation',
+    // Despite the "browser session" wording in its provider blurb, this is
+    // plain HTTP: X-Request-Token is a deterministic hash of a static seed,
+    // so no browser is involved. See executors/theOldLlmExecutor.ts.
+    transport: 'custom-http',
     proxySupported: true,
-    // The request itself is plain HTTP, but the access token is minted by an
-    // embedded browser; without that step the endpoint answers 401.
-    isActive: false, // needs browser-based token generation, not implemented
+    isActive: true,
     models: [
       { id: 'gpt-5.4', name: 'GPT-5.4', displayName: 'GPT-5.4', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
       { id: 'claude-opus', name: 'Claude Opus', displayName: 'Claude 4.6 Opus', capabilities: [{ type: 'text', supported: true }, { type: 'tool-calling', supported: true }], costPerMTok: 0 },
@@ -93,13 +101,15 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     rateLimit: { type: 'shared-queue' },
   },
   felo: {
-    id: 'felo-web',
+    id: 'felo',
     alias: 'felo',
     name: 'Felo',
     website: 'https://felo.ai',
-    transport: 'reverse-engineered',
+    // Two plain HTTP calls (open thread -> drain its stream). No browser,
+    // no WebSocket. See executors/feloExecutor.ts.
+    transport: 'custom-http',
     proxySupported: false,
-    isActive: false, // no executor yet (see executors/index.ts)
+    isActive: true,
     models: [
       { id: 'felo-chat', name: 'Felo Chat', displayName: 'Felo Chat/Search Aggregator', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
     ],
@@ -122,11 +132,12 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
 
 // Only providers with a working executor AND a transcribed endpoint belong here.
 // Adding a catalogued-but-unimplemented provider makes routing throw at execute().
-export const PROVIDER_FALLBACK_CHAIN = ['opencode', 'uncloseai', 'aihorde'];
+export const PROVIDER_FALLBACK_CHAIN = ['opencode', 'theoldllm', 'felo', 'uncloseai', 'aihorde'];
 
 export const TRANSPORT_TYPE_PRIORITY: Record<string, number> = {
   'direct-http': 1,
-  'browser-automation': 2,
+  'custom-http': 2,
+  'browser-automation': 3,
   'passthrough': 3,
   'reverse-engineered': 4,
   'local-cli': 5,

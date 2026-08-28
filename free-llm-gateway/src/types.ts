@@ -28,6 +28,7 @@ export interface ModelCapability {
 
 export type TransportType =
   | 'direct-http'
+  | 'custom-http'
   | 'browser-automation'
   | 'reverse-engineered'
   | 'passthrough'

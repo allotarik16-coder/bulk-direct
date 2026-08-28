@@ -53,10 +53,10 @@ export class FreeLLMRouter {
       name: 'Fast HTTP Only',
       priority: (provider: FreeLLMProvider) => {
         if (provider.transport === 'direct-http') return 1;
-        if (provider.proxySupported) return 2;
+        if (provider.transport === 'custom-http') return 2;
         return 999; // Exclude browser-based and reverse-engineered
       },
-      fallbackChain: ['opencode', 'theoldllm'],
+      fallbackChain: ['opencode', 'theoldllm', 'felo'],
     });
 
     // Reliable Only: Exclude reverse-engineered and browser-based providers
@@ -65,7 +65,7 @@ export class FreeLLMRouter {
       priority: (provider: FreeLLMProvider) => {
         if (provider.transport === 'direct-http') return 1;
         if (provider.transport === 'passthrough') return 2;
-        return 999;
+        return 999; // custom-http rides undocumented handshakes: excluded here
       },
       fallbackChain: ['opencode', 'uncloseai', 'aihorde'],
     });
@@ -82,8 +82,9 @@ export class FreeLLMRouter {
       name: 'Cost-Optimized',
       priority: (provider: FreeLLMProvider) => {
         if (provider.transport === 'direct-http') return 1;
-        if (provider.transport === 'passthrough') return 2;
-        return 3;
+        if (provider.transport === 'custom-http') return 2;
+        if (provider.transport === 'passthrough') return 3;
+        return 4;
       },
       fallbackChain: PROVIDER_FALLBACK_CHAIN,
     });

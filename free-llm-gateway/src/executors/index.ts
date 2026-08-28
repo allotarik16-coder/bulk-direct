@@ -1,10 +1,12 @@
 import { BaseExecutor } from './base';
 import { HTTPExecutor } from './httpExecutor';
 import { PassthroughExecutor } from './passthroughExecutor';
+import { TheOldLlmExecutor } from './theOldLlmExecutor';
+import { FeloExecutor } from './feloExecutor';
 import { FREE_LLM_PROVIDERS } from '../providers/config';
 import { PROVIDER_ENDPOINTS } from '../providers/endpoints';
 
-export { BaseExecutor, HTTPExecutor, PassthroughExecutor };
+export { BaseExecutor, HTTPExecutor, PassthroughExecutor, TheOldLlmExecutor, FeloExecutor };
 
 /**
  * Executor factory - creates appropriate executor for a provider
@@ -39,6 +41,11 @@ export class ExecutorFactory {
         return this.createHTTPExecutor(providerId, provider);
       case 'passthrough':
         return this.createPassthroughExecutor(providerId, provider);
+      // Bespoke HTTP handshakes (token minting, two-step stream handoff) that
+      // the generic HTTPExecutor cannot express.
+      case 'custom-http':
+        return this.createCustomHTTPExecutor(providerId, provider);
+
       // The transports below are declared in the provider catalog but have no
       // executor yet. They must fail loudly: falling back to HTTPExecutor would
       // POST OpenAI-shaped JSON at a page/WebSocket that does not speak it, and
@@ -70,6 +77,20 @@ export class ExecutorFactory {
     }
 
     return new HTTPExecutor(providerId, provider.name, entry.chat, entry.models);
+  }
+
+  /**
+   * Providers whose auth is a bespoke HTTP handshake rather than a bearer token.
+   */
+  private createCustomHTTPExecutor(providerId: string, provider: any): BaseExecutor {
+    switch (providerId) {
+      case 'theoldllm':
+        return new TheOldLlmExecutor(providerId, provider.name);
+      case 'felo':
+        return new FeloExecutor(providerId, provider.name);
+      default:
+        throw new Error(`No custom-http executor registered for "${providerId}"`);
+    }
   }
 
   /**

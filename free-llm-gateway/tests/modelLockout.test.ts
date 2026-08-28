@@ -34,13 +34,12 @@ test('a real provider fault still degrades health', () => {
 test('a 404 model is not routed to the same provider again', async () => {
   const router = new FreeLLMRouter();
 
+  // Whichever provider wins first, a lockout must push the next request past it.
   const first = await router.route({ model: 'claude-opus', messages: [] });
-  assert.equal(first.provider.id, 'uncloseai');
-
-  router.recordFailure('uncloseai', 'Model not found', 'claude-opus');
+  router.recordFailure(first.provider.id, 'Model not found', 'claude-opus');
 
   const second = await router.route({ model: 'claude-opus', messages: [] });
-  assert.notEqual(second.provider.id, 'uncloseai', 'locked model must fall through');
+  assert.notEqual(second.provider.id, first.provider.id, 'locked model must fall through');
 });
 
 test('lockout is scoped to one model, not the whole provider', async () => {
