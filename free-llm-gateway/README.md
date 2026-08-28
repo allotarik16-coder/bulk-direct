@@ -159,6 +159,37 @@ await gateway.execute(request, 'cost-optimized');
 
 ## Available Providers
 
+### Keyed providers (official free tiers)
+
+These are the vendors' own documented, OpenAI-compatible APIs. They need a free
+key you register for yourself — none is bundled here — and each one activates
+automatically once its variable is set. Without a key the provider stays
+inactive and routing skips it, so an unconfigured install still works.
+
+| Provider | Alias | Env var | Free tier | Get a key |
+|----------|-------|---------|-----------|-----------|
+| **Groq** | `groq` | `GROQ_API_KEY` | 30 RPM · 14.4k/day | [console.groq.com/keys](https://console.groq.com/keys) |
+| **Google Gemini** | `gem` | `GEMINI_API_KEY` | 15 RPM · no card | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| **Cerebras** | `cbr` | `CEREBRAS_API_KEY` | 5 RPM · no card | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
+| **Mistral AI** | `mist` | `MISTRAL_API_KEY` | no card | [console.mistral.ai](https://console.mistral.ai/api-keys) |
+| **DeepSeek** | `ds` | `DEEPSEEK_API_KEY` | dynamic | [platform.deepseek.com](https://platform.deepseek.com/api_keys) |
+| **OpenRouter** | `or` | `OPENROUTER_API_KEY` | `:free` models | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| **xAI** | `xai` | `XAI_API_KEY` | credit-based | [console.x.ai](https://console.x.ai) |
+
+```bash
+export GROQ_API_KEY=gsk_...      # activates Groq on the next run
+npm run check:live               # lists which keys are still missing
+```
+
+Provider list sourced from
+[awesome-freellm-apis](https://github.com/open-free-llm-api/awesome-freellm-apis),
+a directory of signup pages — it distributes no keys, and neither does this repo.
+
+### Anonymous providers (no key)
+
+Reverse-engineered or open endpoints. No signup, but they break when an
+upstream adds a captcha or bot check — see `npm run check:live` for current state.
+
 | Provider | Alias | Transport | Models | Rate Limit | Proxy |
 |----------|-------|-----------|--------|-----------|-------|
 | **OpenCode** | `oc` | HTTP | Kimi, GLM, Qwen | Per-IP | ✅ |

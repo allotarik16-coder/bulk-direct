@@ -10,6 +10,7 @@
 import { FreeLLMGateway } from '../src/gateway';
 import { FREE_LLM_PROVIDERS } from '../src/providers/config';
 import { PROVIDER_ENDPOINTS } from '../src/providers/endpoints';
+import { missingKeyProviders } from '../src/providers/apiKeys';
 
 const PROMPT = 'Réponds exactement: BONJOUR';
 
@@ -62,6 +63,17 @@ async function main() {
   }
 
   console.log(`${ok}/${routable.length} providers ont répondu.\n`);
+
+  // A provider that is simply unconfigured should not look like a failure:
+  // it never ran. Name the variable and the signup page instead.
+  const missing = missingKeyProviders();
+  if (missing.length > 0) {
+    console.log(`${missing.length} providers en attente d'une clé (non testés) :\n`);
+    for (const { id, envVar, signup } of missing) {
+      console.log(`   ${pad(id, 12)} ${pad(envVar, 22)} ${signup}`);
+    }
+    console.log('\nInscription gratuite, puis export de la variable pour activer le provider.\n');
+  }
 
   if (ok < routable.length) {
     console.log('Colle cette sortie dans la conversation pour que les échecs soient corrigés.');
