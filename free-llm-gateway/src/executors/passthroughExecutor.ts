@@ -8,12 +8,24 @@ import { LLMRequest, LLMResponse } from '../types';
 export class PassthroughExecutor extends BaseExecutor {
   private endpoint: string;
   private modelsEndpoint?: string;
-  private dummyApiKey: string = 'dummy-key-for-passthrough';
+  /**
+   * Some passthrough providers (AI Horde, OpenRouter) do check the key even
+   * though they accept any model name; the placeholder is only for the ones
+   * that ignore auth entirely, and a real key always wins.
+   */
+  private apiKey: string;
 
-  constructor(providerId: string, providerName: string, endpoint: string, modelsEndpoint?: string) {
+  constructor(
+    providerId: string,
+    providerName: string,
+    endpoint: string,
+    modelsEndpoint?: string,
+    apiKey?: string
+  ) {
     super(providerId, providerName);
     this.endpoint = endpoint;
     this.modelsEndpoint = modelsEndpoint;
+    this.apiKey = apiKey ?? 'dummy-key-for-passthrough';
   }
 
   async execute(request: LLMRequest): Promise<LLMResponse> {
@@ -24,7 +36,7 @@ export class PassthroughExecutor extends BaseExecutor {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.dummyApiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -67,7 +79,7 @@ export class PassthroughExecutor extends BaseExecutor {
       const response = await this.fetchWithTimeout(this.modelsEndpoint, {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${this.dummyApiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
       });
       return response.ok;

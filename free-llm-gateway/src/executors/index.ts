@@ -5,6 +5,7 @@ import { TheOldLlmExecutor } from './theOldLlmExecutor';
 import { FeloExecutor } from './feloExecutor';
 import { FREE_LLM_PROVIDERS } from '../providers/config';
 import { PROVIDER_ENDPOINTS } from '../providers/endpoints';
+import { getApiKey } from '../providers/apiKeys';
 
 export { BaseExecutor, HTTPExecutor, PassthroughExecutor, TheOldLlmExecutor, FeloExecutor };
 
@@ -76,7 +77,9 @@ export class ExecutorFactory {
       );
     }
 
-    return new HTTPExecutor(providerId, provider.name, entry.chat, entry.models);
+    // The key was never passed before, so every keyed provider 401'd with
+    // "Missing API key" no matter what was in the environment.
+    return new HTTPExecutor(providerId, provider.name, entry.chat, entry.models, getApiKey(providerId));
   }
 
   /**
@@ -104,7 +107,13 @@ export class ExecutorFactory {
       );
     }
 
-    return new PassthroughExecutor(providerId, provider.name, entry.chat, entry.models);
+    return new PassthroughExecutor(
+      providerId,
+      provider.name,
+      entry.chat,
+      entry.models,
+      getApiKey(providerId)
+    );
   }
 
   /**

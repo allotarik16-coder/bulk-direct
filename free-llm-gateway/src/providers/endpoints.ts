@@ -37,4 +37,52 @@ export const PROVIDER_ENDPOINTS: Record<string, ProviderEndpoint> = {
     models: 'https://oai.aihorde.net/v1/models',
     source: 'omniroute open-sse/config/providers/registry/aihorde/index.ts',
   },
+
+  // ---------------------------------------------------------------------
+  // Keyed providers: official free tiers with published, stable OpenAI-
+  // compatible endpoints. Unlike the entries above these are not scraped —
+  // they are the vendors' own documented APIs, so they do not break when a
+  // provider adds a captcha or rotates a web token. Each needs its own key
+  // from PROVIDER_API_KEY_ENV; without one the provider stays inactive.
+  //
+  // Catalogued from open-free-llm-api/awesome-freellm-apis, which is an
+  // index of signup pages — it distributes no keys, and neither does this.
+  // ---------------------------------------------------------------------
+  groq: {
+    chat: 'https://api.groq.com/openai/v1/chat/completions',
+    models: 'https://api.groq.com/openai/v1/models',
+    source: 'https://console.groq.com/docs/openai',
+  },
+  cerebras: {
+    chat: 'https://api.cerebras.ai/v1/chat/completions',
+    models: 'https://api.cerebras.ai/v1/models',
+    source: 'https://inference-docs.cerebras.ai/api-reference/chat-completions',
+  },
+  mistral: {
+    chat: 'https://api.mistral.ai/v1/chat/completions',
+    models: 'https://api.mistral.ai/v1/models',
+    source: 'https://docs.mistral.ai/api/',
+  },
+  deepseek: {
+    chat: 'https://api.deepseek.com/v1/chat/completions',
+    models: 'https://api.deepseek.com/v1/models',
+    source: 'https://api-docs.deepseek.com/',
+  },
+  openrouter: {
+    chat: 'https://openrouter.ai/api/v1/chat/completions',
+    models: 'https://openrouter.ai/api/v1/models',
+    source: 'https://openrouter.ai/docs/api-reference/overview',
+  },
+  xai: {
+    chat: 'https://api.x.ai/v1/chat/completions',
+    models: 'https://api.x.ai/v1/models',
+    source: 'https://docs.x.ai/docs/api-reference',
+  },
+  gemini: {
+    // Google's OpenAI-compatibility shim, not the native generateContent API:
+    // it keeps Gemini on the same HTTPExecutor as everything else here.
+    chat: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    models: 'https://generativelanguage.googleapis.com/v1beta/openai/models',
+    source: 'https://ai.google.dev/gemini-api/docs/openai',
+  },
 };

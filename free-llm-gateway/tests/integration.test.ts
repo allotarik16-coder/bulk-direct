@@ -178,6 +178,42 @@ test('a 500 does degrade provider health', async () => {
   assert.equal(health?.consecutiveFailures, 1, 'a real fault must count');
 });
 
+/**
+ * Regression guard for the "Missing API key" 401s: the factory built every
+ * HTTP executor without passing a key, so no environment variable could ever
+ * reach the wire. Asserted on the header the provider actually reads.
+ */
+test('a configured API key reaches the Authorization header', async () => {
+  process.env.OPENCODE_API_KEY = 'sk-test-12345';
+  try {
+    const gateway = new FreeLLMGateway();
+    await gateway.execute({
+      model: 'claude-fable-5',
+      provider: 'opencode',
+      messages: [{ role: 'user', content: 'ping' }],
+    });
+
+    assert.equal(lastRequest!.headers.authorization, 'Bearer sk-test-12345');
+  } finally {
+    delete process.env.OPENCODE_API_KEY;
+  }
+});
+
+test('no configured key means no Authorization header at all', async () => {
+  delete process.env.OPENCODE_API_KEY;
+
+  const gateway = new FreeLLMGateway();
+  await gateway.execute({
+    model: 'claude-fable-5',
+    provider: 'opencode',
+    messages: [{ role: 'user', content: 'ping' }],
+  });
+
+  // Sending "Bearer undefined" would read upstream as a malformed credential
+  // rather than an absent one, which is a worse error to debug.
+  assert.equal(lastRequest!.headers.authorization, undefined);
+});
+
 test('routing falls through to a working provider', async () => {
   const gateway = new FreeLLMGateway();
 

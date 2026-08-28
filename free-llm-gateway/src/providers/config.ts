@@ -1,4 +1,19 @@
 import { FreeLLMProvider } from '../types';
+import { hasApiKey } from './apiKeys';
+
+/** Text-only model entry; every keyed provider below serves at least these. */
+function textModel(id: string, name: string, displayName: string, streaming = true) {
+  return {
+    id,
+    name,
+    displayName,
+    capabilities: [
+      { type: 'text' as const, supported: true },
+      { type: 'streaming' as const, supported: streaming },
+    ],
+    costPerMTok: 0,
+  };
+}
 
 // INVARIANT: each record key must equal its `id`. The router, executor factory,
 // endpoint table and health map all address providers by that one string; when
@@ -135,11 +150,135 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     ],
     rateLimit: { type: 'per-ip', limit: 50, window: 3600 },
   },
+
+  // -----------------------------------------------------------------------
+  // Keyed providers — official free tiers, documented OpenAI-compatible APIs.
+  //
+  // isActive is computed, not declared: each is routable exactly when its key
+  // is in the environment. Hardcoding `true` would put a guaranteed 401 in the
+  // fallback chain and let the health tracker read a missing key as an outage.
+  //
+  // Model lists are the free-tier headliners, kept short on purpose; the live
+  // /models endpoint is the source of truth and warmup() overrides these.
+  // -----------------------------------------------------------------------
+  groq: {
+    id: 'groq',
+    alias: 'groq',
+    name: 'Groq',
+    website: 'https://groq.com',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('groq'),
+    models: [
+      textModel('llama-3.3-70b-versatile', 'Llama 3.3 70B', 'Llama 3.3 70B Versatile'),
+      textModel('llama-3.1-8b-instant', 'Llama 3.1 8B', 'Llama 3.1 8B Instant'),
+    ],
+    rateLimit: { type: 'per-session', limit: 30, window: 60 },
+  },
+  cerebras: {
+    id: 'cerebras',
+    alias: 'cbr',
+    name: 'Cerebras',
+    website: 'https://cerebras.ai',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('cerebras'),
+    models: [
+      textModel('llama-3.3-70b', 'Llama 3.3 70B', 'Llama 3.3 70B (Cerebras)'),
+      textModel('llama3.1-8b', 'Llama 3.1 8B', 'Llama 3.1 8B (Cerebras)'),
+    ],
+    rateLimit: { type: 'per-session', limit: 5, window: 60 },
+  },
+  mistral: {
+    id: 'mistral',
+    alias: 'mist',
+    name: 'Mistral AI',
+    website: 'https://mistral.ai',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('mistral'),
+    models: [
+      textModel('mistral-small-latest', 'Mistral Small', 'Mistral Small (latest)'),
+      textModel('open-mistral-nemo', 'Mistral Nemo', 'Open Mistral Nemo'),
+    ],
+    rateLimit: { type: 'unknown' },
+  },
+  deepseek: {
+    id: 'deepseek',
+    alias: 'ds',
+    name: 'DeepSeek',
+    website: 'https://deepseek.com',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('deepseek'),
+    models: [
+      textModel('deepseek-chat', 'DeepSeek Chat', 'DeepSeek Chat V3'),
+      textModel('deepseek-reasoner', 'DeepSeek Reasoner', 'DeepSeek Reasoner (R1)'),
+    ],
+    rateLimit: { type: 'unknown' },
+  },
+  openrouter: {
+    id: 'openrouter',
+    alias: 'or',
+    name: 'OpenRouter',
+    website: 'https://openrouter.ai',
+    transport: 'passthrough',
+    proxySupported: true,
+    isActive: hasApiKey('openrouter'),
+    models: [
+      textModel('meta-llama/llama-3.3-70b-instruct:free', 'Llama 3.3 70B (free)', 'Llama 3.3 70B Instruct — free tier'),
+    ],
+    rateLimit: { type: 'unknown' },
+  },
+  xai: {
+    id: 'xai',
+    alias: 'xai',
+    name: 'xAI',
+    website: 'https://x.ai',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('xai'),
+    models: [textModel('grok-beta', 'Grok', 'Grok (beta)')],
+    rateLimit: { type: 'unknown' },
+  },
+  gemini: {
+    id: 'gemini',
+    alias: 'gem',
+    name: 'Google Gemini',
+    website: 'https://ai.google.dev',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('gemini'),
+    models: [
+      textModel('gemini-2.0-flash', 'Gemini 2.0 Flash', 'Gemini 2.0 Flash'),
+      textModel('gemini-1.5-flash', 'Gemini 1.5 Flash', 'Gemini 1.5 Flash'),
+    ],
+    rateLimit: { type: 'per-session', limit: 15, window: 60 },
+  },
 };
 
-// Only providers with a working executor AND a transcribed endpoint belong here.
+// Only providers with a working executor AND a verified endpoint belong here.
 // Adding a catalogued-but-unimplemented provider makes routing throw at execute().
-export const PROVIDER_FALLBACK_CHAIN = ['opencode', 'theoldllm', 'felo', 'uncloseai', 'aihorde'];
+//
+// Keyed providers come first: they are documented vendor APIs, so they answer
+// as long as the key is valid, where the scraped ones break whenever a captcha
+// or bot-check is added upstream. Ones with no key configured are inactive and
+// skipped by canProviderServe, so an unkeyed install falls through to the free
+// anonymous providers exactly as before.
+export const PROVIDER_FALLBACK_CHAIN = [
+  'groq',
+  'cerebras',
+  'gemini',
+  'mistral',
+  'deepseek',
+  'openrouter',
+  'xai',
+  'opencode',
+  'theoldllm',
+  'felo',
+  'uncloseai',
+  'aihorde',
+];
 
 export const TRANSPORT_TYPE_PRIORITY: Record<string, number> = {
   'direct-http': 1,
