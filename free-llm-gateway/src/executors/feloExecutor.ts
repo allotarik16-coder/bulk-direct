@@ -23,8 +23,8 @@ const FELO_MODEL_CATEGORIES: Record<string, string> = {
   'felo-document': 'document',
 };
 
-export function feloStreamUrl(streamKey: string): string {
-  return `${FELO_BASE}/api/message/v1/stream/${encodeURIComponent(streamKey)}?offset=0`;
+export function feloStreamUrl(streamKey: string, base: string = FELO_BASE): string {
+  return `${base}/api/message/v1/stream/${encodeURIComponent(streamKey)}?offset=0`;
 }
 
 export function resolveFeloCategory(model?: string | null): string {
@@ -116,6 +116,14 @@ export function accumulateFeloStreamText(rawText: string): string {
 }
 
 export class FeloExecutor extends BaseExecutor {
+  /** Overridable so the two-step handoff can be driven against a test server. */
+  private base: string;
+
+  constructor(providerId: string, providerName: string, base: string = FELO_BASE) {
+    super(providerId, providerName);
+    this.base = base;
+  }
+
   async execute(request: LLMRequest): Promise<LLMResponse> {
     const startTime = Date.now();
 
@@ -123,7 +131,7 @@ export class FeloExecutor extends BaseExecutor {
       const prompt = lastUserText(request);
 
       // 1. Open a thread; the response carries the stream key.
-      const threadResponse = await this.fetchWithTimeout(FELO_THREADS_URL, {
+      const threadResponse = await this.fetchWithTimeout(`${this.base}/api-proxy/main/search/threads`, {
         method: 'POST',
         headers: FELO_HEADERS,
         body: JSON.stringify(buildFeloThreadPayload(request.model, prompt)),
@@ -140,7 +148,7 @@ export class FeloExecutor extends BaseExecutor {
       }
 
       // 2. Drain the stream that key points at.
-      const streamResponse = await this.fetchWithTimeout(feloStreamUrl(streamKey), {
+      const streamResponse = await this.fetchWithTimeout(feloStreamUrl(streamKey, this.base), {
         method: 'GET',
         headers: {
           Accept: '*/*',
