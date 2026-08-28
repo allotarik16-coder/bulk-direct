@@ -57,14 +57,18 @@ export abstract class BaseExecutor {
       if (message.includes('timeout') || message.includes('Timeout')) {
         return { error: 'Request timeout', statusCode: 408 };
       }
+      // These classifications keep the original message attached: the label
+      // alone ("Authentication failed") threw away the response body, which
+      // is the one thing that tells you *why* — a stale key, a renamed model,
+      // a captcha wall — rather than just that something 4xx'd.
       if (message.includes('429')) {
-        return { error: 'Rate limited', statusCode: 429 };
+        return { error: `Rate limited: ${message.slice(0, 180)}`, statusCode: 429 };
       }
       if (message.includes('401') || message.includes('403')) {
-        return { error: 'Authentication failed', statusCode: 401 };
+        return { error: `Authentication failed: ${message.slice(0, 180)}`, statusCode: 401 };
       }
       if (message.includes('404')) {
-        return { error: 'Model not found', statusCode: 404 };
+        return { error: `Model not found: ${message.slice(0, 180)}`, statusCode: 404 };
       }
 
       return { error: message.substring(0, 200), statusCode: 500 };
