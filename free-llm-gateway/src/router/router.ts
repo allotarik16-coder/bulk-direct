@@ -1,10 +1,23 @@
 import { FreeLLMProvider, RoutingStrategy, LLMRequest, HealthStatus } from '../types';
 import { FREE_LLM_PROVIDERS, PROVIDER_FALLBACK_CHAIN, TRANSPORT_TYPE_PRIORITY } from '../providers/config';
 
+/**
+ * A 404 / "model not found" is a fact about one model, not about the provider.
+ * Executors surface it via BaseExecutor.buildError as "Model not found".
+ */
+export function isModelNotFound(error: string): boolean {
+  return /model not found|404/i.test(error);
+}
+
 export class FreeLLMRouter {
   private healthStatus: Map<string, HealthStatus> = new Map();
   private routingStrategies: Map<string, RoutingStrategy> = new Map();
   private defaultStrategy: string = 'smart-fallback';
+  /** Live model lists from discovery, per provider. */
+  private modelIndex: Map<string, Set<string>> = new Map();
+  /** `providerId:modelId` -> epoch ms when the lockout lifts. */
+  private modelLockouts: Map<string, number> = new Map();
+  private modelLockoutMs = 15 * 60 * 1000;
 
   constructor() {
     this.initializeHealthStatus();
@@ -131,13 +144,45 @@ export class FreeLLMRouter {
       return false; // Provider is too unhealthy
     }
 
-    // Passthrough providers can serve any model
+    // This exact model already 404'd here; the provider itself is still fine.
+    if (this.isModelLocked(provider.id, modelId)) return false;
+
     if (provider.transport === 'passthrough') {
-      return true;
+      // Passthrough accepts any model name, so the static catalog says nothing
+      // about what is actually served. Once discovery has fetched the live list
+      // (see FreeLLMGateway.warmup), trust it; until then stay permissive —
+      // refusing would drop the models that are the point of passthrough.
+      const live = this.modelIndex.get(provider.id);
+      if (!live) return true;
+      return live.has(modelId);
     }
 
     // Check if provider has exact model
     return provider.models.some((m) => m.id === modelId || m.name.toLowerCase() === modelId.toLowerCase());
+  }
+
+  /**
+   * Publish a provider's live model list, as fetched by discovery. Lets routing
+   * skip a passthrough provider that demonstrably lacks the requested model
+   * instead of spending a doomed request to find out.
+   */
+  setModelIndex(providerId: string, modelIds: string[]) {
+    this.modelIndex.set(providerId, new Set(modelIds));
+  }
+
+  /**
+   * Park one (provider, model) pair without touching provider health.
+   */
+  lockModel(providerId: string, modelId: string, ttlMs: number = this.modelLockoutMs) {
+    this.modelLockouts.set(`${providerId}:${modelId}`, Date.now() + ttlMs);
+  }
+
+  isModelLocked(providerId: string, modelId: string): boolean {
+    const until = this.modelLockouts.get(`${providerId}:${modelId}`);
+    if (until === undefined) return false;
+    if (until > Date.now()) return true;
+    this.modelLockouts.delete(`${providerId}:${modelId}`); // lazily expire
+    return false;
   }
 
   /**
@@ -153,9 +198,18 @@ export class FreeLLMRouter {
   }
 
   /**
-   * Record a failed request
+   * Record a failed request.
+   *
+   * Pass `model` so a missing model can be told apart from a sick provider.
+   * Without that split, three requests for three models a passthrough provider
+   * happens not to carry would mark a perfectly healthy provider dead.
    */
-  recordFailure(providerId: string, error: string) {
+  recordFailure(providerId: string, error: string, model?: string) {
+    if (model && isModelNotFound(error)) {
+      this.lockModel(providerId, model);
+      return;
+    }
+
     const health = this.healthStatus.get(providerId);
     if (health) {
       health.consecutiveFailures++;

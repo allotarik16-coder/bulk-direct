@@ -30,9 +30,26 @@ export class FreeLLMGateway {
       this.router.recordSuccess(provider.id);
       return response;
     } catch (error) {
-      this.router.recordFailure(provider.id, (error as Error).message);
+      this.router.recordFailure(provider.id, (error as Error).message, model);
       throw error;
     }
+  }
+
+  /**
+   * Fetch every provider's live model list and hand it to the router, so that
+   * routing can skip a passthrough provider that does not carry the requested
+   * model. Optional: without it the router stays permissive for passthrough.
+   *
+   * Does network I/O — call it at startup, not per request.
+   */
+  async warmup(): Promise<void> {
+    const discovered = await this.discovery.discoverAllModels();
+    discovered.forEach((models, providerId) => {
+      this.router.setModelIndex(
+        providerId,
+        models.map((m) => m.id)
+      );
+    });
   }
 
   /**
