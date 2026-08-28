@@ -176,10 +176,32 @@ inactive and routing skips it, so an unconfigured install still works.
 | **OpenRouter** | `or` | `OPENROUTER_API_KEY` | `:free` models | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | **xAI** | `xai` | `XAI_API_KEY` | credit-based | [console.x.ai](https://console.x.ai) |
 
+#### Configure once per machine, not once per project
+
+A key is stored in `~/.free-llm/keys.env` and read by **every** project on the
+machine. Rotating a credential is one command, not one edit per repository.
+
 ```bash
-export GROQ_API_KEY=gsk_...      # activates Groq on the next run
-npm run check:live               # lists which keys are still missing
+npm run keys:set groq gsk_...    # stored in ~/.free-llm/keys.env, chmod 600
+npm run keys                     # what is configured, and where it came from
+npm run keys:rm groq             # forget it
+npm run keys:doctor              # which files are being read
 ```
+
+Resolution order, highest priority first:
+
+| Source | Use it for |
+|--------|-----------|
+| the process environment (`export GROQ_API_KEY=…`) | CI secrets, one-off overrides |
+| `./.env` in the project directory | a project that needs a *different* account |
+| `~/.free-llm/keys.env` | the machine-wide default — set it once |
+
+The environment deliberately outranks the files, so a CI runner injecting a
+secret is never shadowed by a stale file on a developer's disk. `$FREE_LLM_KEYS`
+relocates the machine-wide file for shared or mounted home directories.
+
+Per-repository secrets are then only needed for CI, where the runner is a fresh
+box with no home directory to inherit from.
 
 Provider list sourced from
 [awesome-freellm-apis](https://github.com/open-free-llm-api/awesome-freellm-apis),

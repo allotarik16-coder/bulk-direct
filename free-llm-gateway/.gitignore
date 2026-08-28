@@ -1,2 +1,9 @@
 node_modules/
 dist/
+
+# Credentials. The machine-wide file lives in ~/.free-llm/keys.env and is
+# never inside a repo; this guards a project-local override from a stray push.
+.env
+.env.*
+!.env.example
+keys.env

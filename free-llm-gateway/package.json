@@ -19,7 +19,11 @@
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "check:live": "tsx scripts/check-live.ts"
+    "check:live": "tsx scripts/check-live.ts",
+    "keys": "tsx scripts/keys.ts",
+    "keys:set": "tsx scripts/keys.ts set",
+    "keys:rm": "tsx scripts/keys.ts rm",
+    "keys:doctor": "tsx scripts/keys.ts doctor"
   },
   "keywords": [
     "llm",
