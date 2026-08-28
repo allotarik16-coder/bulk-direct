@@ -138,7 +138,9 @@ export class FeloExecutor extends BaseExecutor {
       });
 
       if (!threadResponse.ok) {
-        throw new Error(`HTTP ${threadResponse.status}: ${threadResponse.statusText}`);
+        throw new Error(
+          `HTTP ${threadResponse.status}: ${threadResponse.statusText} ${(await threadResponse.text()).slice(0, 200)}`
+        );
       }
 
       const thread = (await threadResponse.json()) as { stream_key?: unknown };
@@ -159,7 +161,9 @@ export class FeloExecutor extends BaseExecutor {
       });
 
       if (!streamResponse.ok) {
-        throw new Error(`HTTP ${streamResponse.status}: ${streamResponse.statusText}`);
+        throw new Error(
+          `HTTP ${streamResponse.status}: ${streamResponse.statusText} ${(await streamResponse.text()).slice(0, 200)}`
+        );
       }
 
       return {

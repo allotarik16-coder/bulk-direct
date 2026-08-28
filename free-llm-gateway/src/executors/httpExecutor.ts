@@ -33,7 +33,11 @@ export class HTTPExecutor extends BaseExecutor {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Carry a slice of the body: it is what distinguishes an egress-proxy
+        // rejection from a real upstream refusal.
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText} ${(await response.text()).slice(0, 200)}`
+        );
       }
 
       const data = await response.json();

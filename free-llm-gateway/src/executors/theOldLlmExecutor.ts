@@ -88,7 +88,7 @@ export class TheOldLlmExecutor extends BaseExecutor {
         if (isVercelMitigation(response, body)) {
           throw new Error('Blocked by Vercel bot protection (needs a different egress IP)');
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} ${body.slice(0, 200)}`);
       }
 
       const content = body.includes('data: ') ? parseSseContent(body) : extractJsonContent(body);

@@ -40,6 +40,20 @@ export abstract class BaseExecutor {
     if (error instanceof Error) {
       const message = error.message;
 
+      // Check egress problems FIRST. A sandbox/corporate proxy refusing a host
+      // answers 403, and reading that as "Authentication failed" sends you
+      // hunting for a credential that was never the problem.
+      const blockedHost = extractBlockedHost(message);
+      if (blockedHost) {
+        return {
+          error: `Blocked by network egress policy: "${blockedHost}" is not in the allowlist (not a provider error)`,
+          statusCode: 403,
+        };
+      }
+      if (/fetch failed|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|tunnel/i.test(message)) {
+        return { error: `Network unreachable: ${message.slice(0, 120)}`, statusCode: 503 };
+      }
+
       if (message.includes('timeout') || message.includes('Timeout')) {
         return { error: 'Request timeout', statusCode: 408 };
       }
@@ -76,4 +90,17 @@ export abstract class BaseExecutor {
       clearTimeout(timeoutId);
     }
   }
+}
+
+/**
+ * Recognises an egress-proxy rejection, e.g.
+ *   "Host not in allowlist: opencode.ai. Add this host to your network egress…"
+ * Returns the host so callers can name exactly what to allow.
+ */
+export function extractBlockedHost(message: string): string | null {
+  // Dots are part of the hostname, so they cannot be excluded from the class;
+  // only the sentence-ending period is stripped afterwards. Excluding them
+  // yielded "opencode" instead of "opencode.ai" — useless for an allowlist.
+  const match = message.match(/host not in allowlist:\s*([^\s,]+)/i);
+  return match ? match[1].replace(/\.$/, '') : null;
 }

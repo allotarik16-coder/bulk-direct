@@ -14,11 +14,12 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "node --test dist/tests/**/*.test.js",
+    "test": "tsx --test tests/*.test.ts",
     "test:watch": "npm run build && npm run test -- --watch",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "check:live": "tsx scripts/check-live.ts"
   },
   "keywords": [
     "llm",

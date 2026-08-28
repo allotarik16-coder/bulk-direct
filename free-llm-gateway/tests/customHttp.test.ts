@@ -3,6 +3,7 @@ import test from 'node:test';
 import { generateRequestToken, parseSseContent } from '../src/executors/theOldLlmExecutor';
 import { accumulateFeloStreamText, parseFeloStreamLine, resolveFeloCategory } from '../src/executors/feloExecutor';
 import { ExecutorFactory } from '../src/executors';
+import { extractBlockedHost } from '../src/executors/base';
 import { FreeLLMRouter } from '../src/router/router';
 import { FREE_LLM_PROVIDERS } from '../src/providers/config';
 
@@ -114,4 +115,23 @@ test('each provider record key equals its id', () => {
   for (const [key, provider] of Object.entries(FREE_LLM_PROVIDERS)) {
     assert.equal(provider.id, key, `key "${key}" and id "${provider.id}" must match`);
   }
+});
+
+// ── Egress-proxy rejections must not read as provider auth failures ──
+
+test('a blocked host is named in full, not truncated at the first dot', () => {
+  const msg =
+    'HTTP 403: Forbidden Host not in allowlist: opencode.ai. Add this host to your network egress settings.';
+  assert.equal(extractBlockedHost(msg), 'opencode.ai');
+});
+
+test('subdomains survive extraction', () => {
+  assert.equal(
+    extractBlockedHost('Host not in allowlist: hermes.ai.unturf.com. Add this host'),
+    'hermes.ai.unturf.com'
+  );
+});
+
+test('an ordinary 403 is not mistaken for an egress block', () => {
+  assert.equal(extractBlockedHost('HTTP 403: Forbidden {"error":"bad key"}'), null);
 });

@@ -1,0 +1,35 @@
+# Manual only. Sends one real request to each routable free LLM provider and
+# prints what came back, so the endpoints in free-llm-gateway can be confirmed
+# against live responses instead of staying transcribed-but-unverified.
+#
+# Nothing runs on push: this reaches third-party hosts, so it fires only when
+# someone clicks "Run workflow".
+
+name: Check free LLM providers (live)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        working-directory: free-llm-gateway
+        run: npm install
+
+      - name: Offline test suite
+        working-directory: free-llm-gateway
+        run: npm test
+
+      - name: Live provider check
+        working-directory: free-llm-gateway
+        run: npm run check:live
