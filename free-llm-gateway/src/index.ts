@@ -1,6 +1,11 @@
 // Main gateway export
 export { FreeLLMGateway, gateway } from './gateway';
 
+// Deploy once, call from anywhere: the same router behind an OpenAI-compatible
+// HTTP endpoint, so calling projects need a URL instead of this package.
+export { createServer } from './server';
+export type { ServerOptions } from './server';
+
 // Router exports
 export { FreeLLMRouter } from './router/router';
 

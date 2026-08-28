@@ -18,12 +18,54 @@ A unified, zero-cost AI gateway that aggregates **9+ free LLM providers** with i
 
 ---
 
-## Installation
+## Two ways to use it
+
+**As a service (recommended for more than one project).** Deploy the gateway
+once; every other project is a plain `fetch` to an OpenAI-compatible URL. The
+provider keys live in that single deployment — nothing to install and no
+credential to hold in the calling projects, however many there are.
+
+```bash
+GATEWAY_TOKEN=$(node -e "console.log(crypto.randomUUID())") npm run serve
+# → POST /v1/chat/completions   GET /v1/models   GET /health
+```
+
+Then, from any project, in any language:
+
+```js
+const res = await fetch('https://your-gateway.example/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.GATEWAY_TOKEN}`,
+  },
+  body: JSON.stringify({
+    model: 'auto',                       // or a specific model id
+    messages: [{ role: 'user', content: 'Bonjour' }],
+  }),
+});
+const { choices, provider } = await res.json();  // `provider` = who answered
+```
+
+The request and response shapes are OpenAI's, so existing SDKs work by pointing
+`baseURL` at the gateway. Adding a provider or rotating a key is one deployment,
+not one edit per repository.
+
+| Env var | Meaning |
+|---|---|
+| `PORT` / `HOST` | listen address (default `127.0.0.1:8787`) |
+| `GATEWAY_TOKEN` | shared secret callers send as `Bearer …` |
+| `ALLOWED_ORIGINS` | comma-separated origins for browser callers (CORS off by default) |
+
+`GATEWAY_TOKEN` is **required** on any non-loopback bind and the server refuses
+to start without it. An unauthenticated LLM proxy on a public address is found
+by scanners within hours, and the cost arrives as someone else's traffic
+exhausting the free tiers this project exists to use.
+
+**As a library**, when one project wants the router in-process:
 
 ```bash
 npm install free-llm-gateway
-# or
-yarn add free-llm-gateway
 ```
 
 ---

@@ -19,6 +19,7 @@
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "serve": "tsx scripts/serve.ts",
     "check:live": "tsx scripts/check-live.ts",
     "keys": "tsx scripts/keys.ts",
     "keys:set": "tsx scripts/keys.ts set",
