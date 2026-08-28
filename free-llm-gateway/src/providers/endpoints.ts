@@ -85,4 +85,15 @@ export const PROVIDER_ENDPOINTS: Record<string, ProviderEndpoint> = {
     models: 'https://generativelanguage.googleapis.com/v1beta/openai/models',
     source: 'https://ai.google.dev/gemini-api/docs/openai',
   },
+  moonshot: {
+    // Kimi's own API — OpenAI-compatible, bearer token, so it needs no new
+    // executor. Unlike every other entry in this file it is NOT free
+    // ($3/$15 per Mtok for kimi-k3), which is why config.ts marks it
+    // billing: 'paid' and routing refuses to reach it on its own.
+    //
+    // The free way to the same models is openrouter's `:free` Kimi variants.
+    chat: 'https://api.moonshot.ai/v1/chat/completions',
+    models: 'https://api.moonshot.ai/v1/models',
+    source: 'https://platform.kimi.ai/docs/api/chat',
+  },
 };

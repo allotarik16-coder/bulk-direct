@@ -19,7 +19,12 @@
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "check:live": "tsx scripts/check-live.ts"
+    "serve": "tsx scripts/serve.ts",
+    "check:live": "tsx scripts/check-live.ts",
+    "keys": "tsx scripts/keys.ts",
+    "keys:set": "tsx scripts/keys.ts set",
+    "keys:rm": "tsx scripts/keys.ts rm",
+    "keys:doctor": "tsx scripts/keys.ts doctor"
   },
   "keywords": [
     "llm",
@@ -50,5 +55,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0"
   }
 }

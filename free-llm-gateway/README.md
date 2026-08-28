@@ -18,12 +18,91 @@ A unified, zero-cost AI gateway that aggregates **9+ free LLM providers** with i
 
 ---
 
-## Installation
+## Claude first, free providers as the safety net
+
+Set `ANTHROPIC_API_KEY` and Claude becomes the primary. When its quota runs
+out, the same request is served by a free provider instead of failing — the
+caller gets an answer, not a 429.
+
+```bash
+npm run keys:set anthropic sk-ant-...
+```
+
+Quota exhaustion is treated as its own kind of failure, separate from the two
+the gateway already tracked:
+
+| Signal | What happens | Provider health |
+|---|---|---|
+| `404` model not found | that model is locked, provider keeps serving others | unchanged |
+| `429` / `529` / credits spent | provider cools down, next in chain serves the request | **unchanged — this is not a fault** |
+| `5xx`, timeouts | counts toward health; unhealthy after 3 in a row | degraded |
+| `401` bad key | **throws** — never a silent downgrade | degraded |
+
+A spent quota is not an outage: it is expected, and it heals on a known
+schedule. Folding it into health would need three failed requests to trigger,
+and would leave Claude marked dead long after its window reset. The cooldown
+honours the API's `retry-after` header, and expires on its own.
+
+A bad key is deliberately *not* a failover: silently answering from a weaker
+free model would hide the broken credential behind worse output, which is much
+harder to notice than a failed request.
+
+`gateway.cooldownEndsAt('anthropic')` reports when Claude is expected back.
+
+> **Scope.** This covers API calls your own code makes. It cannot extend or take
+> over a claude.ai or Claude Code subscription session — nothing outside the
+> Anthropic API can serve that conversation.
+
+---
+
+## Two ways to use it
+
+**As a service (recommended for more than one project).** Deploy the gateway
+once; every other project is a plain `fetch` to an OpenAI-compatible URL. The
+provider keys live in that single deployment — nothing to install and no
+credential to hold in the calling projects, however many there are.
+
+```bash
+GATEWAY_TOKEN=$(node -e "console.log(crypto.randomUUID())") npm run serve
+# → POST /v1/chat/completions   GET /v1/models   GET /health
+```
+
+Then, from any project, in any language:
+
+```js
+const res = await fetch('https://your-gateway.example/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.GATEWAY_TOKEN}`,
+  },
+  body: JSON.stringify({
+    model: 'auto',                       // or a specific model id
+    messages: [{ role: 'user', content: 'Bonjour' }],
+  }),
+});
+const { choices, provider } = await res.json();  // `provider` = who answered
+```
+
+The request and response shapes are OpenAI's, so existing SDKs work by pointing
+`baseURL` at the gateway. Adding a provider or rotating a key is one deployment,
+not one edit per repository.
+
+| Env var | Meaning |
+|---|---|
+| `PORT` / `HOST` | listen address (default `127.0.0.1:8787`) |
+| `GATEWAY_TOKEN` | shared secret callers send as `Bearer …` |
+| `ALLOWED_ORIGINS` | comma-separated origins for browser callers (CORS off by default) |
+
+`GATEWAY_TOKEN` is **required** on any non-loopback bind and the server refuses
+to start without it. An unauthenticated LLM proxy on a public address is found
+by scanners within hours, and the cost arrives as someone else's traffic
+exhausting the free tiers this project exists to use.
+
+**As a library**, when one project wants the router in-process:
 
 ```bash
 npm install free-llm-gateway
-# or
-yarn add free-llm-gateway
 ```
 
 ---
@@ -173,13 +252,52 @@ inactive and routing skips it, so an unconfigured install still works.
 | **Cerebras** | `cbr` | `CEREBRAS_API_KEY` | 5 RPM · no card | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
 | **Mistral AI** | `mist` | `MISTRAL_API_KEY` | no card | [console.mistral.ai](https://console.mistral.ai/api-keys) |
 | **DeepSeek** | `ds` | `DEEPSEEK_API_KEY` | dynamic | [platform.deepseek.com](https://platform.deepseek.com/api_keys) |
-| **OpenRouter** | `or` | `OPENROUTER_API_KEY` | `:free` models | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| **OpenRouter** | `or` | `OPENROUTER_API_KEY` | `:free` models — incl. **Kimi K2 / K2.6** | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | **xAI** | `xai` | `XAI_API_KEY` | credit-based | [console.x.ai](https://console.x.ai) |
 
+#### Kimi (Moonshot) — two routes
+
+| | Route | Cost | Models |
+|---|---|---|---|
+| **Free** | via OpenRouter | 0 | `moonshotai/kimi-k2:free`, `moonshotai/kimi-k2.6:free` |
+| Paid | `moonshot` direct | ~$3 / $15 per Mtok | `kimi-k3` (1M ctx), `kimi-k2.6`, `kimi-k2.7-code` |
+
+The `:free` suffix is part of the model ID, not decoration — without it OpenRouter
+bills the identical weights at full rate.
+
+`moonshot` is the only provider here that costs money, so it carries
+`billing: 'paid'` and **routing never reaches it on its own**: it is excluded
+from every fallback chain and from the last-resort branch. It answers a request
+that names `provider: 'moonshot'`, or one that names a model only it carries —
+and even then a free passthrough gets first refusal until discovery has run.
+Set `MOONSHOT_API_KEY` to enable it at all.
+
+#### Configure once per machine, not once per project
+
+A key is stored in `~/.free-llm/keys.env` and read by **every** project on the
+machine. Rotating a credential is one command, not one edit per repository.
+
 ```bash
-export GROQ_API_KEY=gsk_...      # activates Groq on the next run
-npm run check:live               # lists which keys are still missing
+npm run keys:set groq gsk_...    # stored in ~/.free-llm/keys.env, chmod 600
+npm run keys                     # what is configured, and where it came from
+npm run keys:rm groq             # forget it
+npm run keys:doctor              # which files are being read
 ```
+
+Resolution order, highest priority first:
+
+| Source | Use it for |
+|--------|-----------|
+| the process environment (`export GROQ_API_KEY=…`) | CI secrets, one-off overrides |
+| `./.env` in the project directory | a project that needs a *different* account |
+| `~/.free-llm/keys.env` | the machine-wide default — set it once |
+
+The environment deliberately outranks the files, so a CI runner injecting a
+secret is never shadowed by a stale file on a developer's disk. `$FREE_LLM_KEYS`
+relocates the machine-wide file for shared or mounted home directories.
+
+Per-repository secrets are then only needed for CI, where the runner is a fresh
+box with no home directory to inherit from.
 
 Provider list sourced from
 [awesome-freellm-apis](https://github.com/open-free-llm-api/awesome-freellm-apis),

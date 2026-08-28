@@ -1,6 +1,7 @@
 import { FreeLLMRouter } from './router/router';
 import { ModelDiscovery } from './discovery/modelDiscovery';
 import { ExecutorFactory } from './executors';
+import { QuotaExhaustedError } from './executors/anthropicExecutor';
 import { FreeLLMProvider, LLMRequest, LLMResponse, HealthStatus, FreeLLMModel } from './types';
 import { FREE_LLM_PROVIDERS } from './providers/config';
 
@@ -18,21 +19,44 @@ export class FreeLLMGateway {
   }
 
   /**
-   * Execute an LLM request with automatic provider selection
+   * Execute an LLM request with automatic provider selection.
+   *
+   * An exhausted quota is the one failure this retries on its own: the primary
+   * provider is put on cooldown and the next one in the chain serves the same
+   * request, so a spent Claude allowance degrades to a free model instead of
+   * surfacing as an error. Every other failure still throws — a 401 answered by
+   * silently switching to a weaker model would hide the broken key behind worse
+   * output, which is far harder to notice than a failed request.
    */
   async execute(request: LLMRequest, strategy: string = 'smart-fallback'): Promise<LLMResponse> {
-    const { provider, model } = await this.router.route(request, strategy);
+    const exhausted: string[] = [];
 
-    try {
-      const executor = this.executorFactory.getExecutor(provider.id);
-      const response = await executor.execute({ ...request, model });
+    // Bounded by the catalog: each pass puts one provider on cooldown, so the
+    // loop cannot revisit it and cannot outlast the provider list.
+    for (let attempt = 0; attempt <= Object.keys(FREE_LLM_PROVIDERS).length; attempt++) {
+      const { provider, model } = await this.router.route(request, strategy);
 
-      this.router.recordSuccess(provider.id);
-      return response;
-    } catch (error) {
-      this.router.recordFailure(provider.id, (error as Error).message, model);
-      throw error;
+      try {
+        const executor = this.executorFactory.getExecutor(provider.id);
+        const response = await executor.execute({ ...request, model });
+
+        this.router.recordSuccess(provider.id);
+        return response;
+      } catch (error) {
+        if (error instanceof QuotaExhaustedError) {
+          this.router.recordQuotaExhausted(error.providerId, error.retryAfterMs);
+          exhausted.push(provider.id);
+          continue; // routing now skips it — the next provider gets this request
+        }
+
+        this.router.recordFailure(provider.id, (error as Error).message, model);
+        throw error;
+      }
     }
+
+    throw new Error(
+      `All providers are out of quota (${exhausted.join(', ')}). Retry once a window resets.`
+    );
   }
 
   /**
@@ -109,6 +133,15 @@ export class FreeLLMGateway {
    */
   getProviderHealth(providerId: string): HealthStatus | undefined {
     return this.router.getHealthStatus().find((h) => h.providerId === providerId);
+  }
+
+  /**
+   * When a provider whose quota ran out is expected back, or null if it is
+   * available now. Health alone cannot answer this: a cooling-down provider
+   * is still healthy, it just has nothing left this window.
+   */
+  cooldownEndsAt(providerId: string): Date | null {
+    return this.router.cooldownEndsAt(providerId);
   }
 
   /**

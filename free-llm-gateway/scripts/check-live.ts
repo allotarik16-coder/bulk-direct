@@ -72,7 +72,8 @@ async function main() {
     for (const { id, envVar, signup } of missing) {
       console.log(`   ${pad(id, 12)} ${pad(envVar, 22)} ${signup}`);
     }
-    console.log('\nInscription gratuite, puis export de la variable pour activer le provider.\n');
+    console.log('\nInscription gratuite, puis `npm run keys:set <provider> <clé>` :');
+    console.log('la clé est enregistrée pour toute la machine, pas pour ce seul projet.\n');
   }
 
   if (ok < routable.length) {

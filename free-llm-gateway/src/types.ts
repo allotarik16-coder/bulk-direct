@@ -8,6 +8,15 @@ export interface FreeLLMProvider {
   rateLimit?: RateLimitConfig;
   proxySupported: boolean;
   isActive: boolean;
+  /**
+   * Whether reaching this provider costs money. Absent means free.
+   *
+   * A paid provider is never selected by the fallback chain or by a routing
+   * strategy: it serves only a request that names it, or names a model only
+   * it carries. Silently spending on a gateway whose whole premise is free
+   * endpoints is a bug no error message would ever surface.
+   */
+  billing?: 'free' | 'paid';
   lastHealthCheck?: Date;
 }
 
@@ -29,6 +38,8 @@ export interface ModelCapability {
 export type TransportType =
   | 'direct-http'
   | 'custom-http'
+  /** Anthropic's own SDK — needed for typed quota errors, see anthropicExecutor. */
+  | 'anthropic-sdk'
   | 'browser-automation'
   | 'reverse-engineered'
   | 'passthrough'

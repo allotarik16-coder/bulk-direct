@@ -225,7 +225,15 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     transport: 'passthrough',
     proxySupported: true,
     isActive: hasApiKey('openrouter'),
+    // The `:free` suffix is load-bearing — it selects OpenRouter's zero-cost
+    // endpoint for the same weights. Drop it and the identical model bills at
+    // full rate, so these IDs are copied verbatim, never "tidied".
+    //
+    // This is the free route to Kimi: same Moonshot weights as the `moonshot`
+    // provider below, one OpenRouter key instead of a paid Moonshot account.
     models: [
+      textModel('moonshotai/kimi-k2:free', 'Kimi K2 (free)', 'Kimi K2 — OpenRouter free tier'),
+      textModel('moonshotai/kimi-k2.6:free', 'Kimi K2.6 (free)', 'Kimi K2.6 — OpenRouter free tier'),
       textModel('meta-llama/llama-3.3-70b-instruct:free', 'Llama 3.3 70B (free)', 'Llama 3.3 70B Instruct — free tier'),
     ],
     rateLimit: { type: 'unknown' },
@@ -239,6 +247,129 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     proxySupported: true,
     isActive: hasApiKey('xai'),
     models: [textModel('grok-beta', 'Grok', 'Grok (beta)')],
+    rateLimit: { type: 'unknown' },
+  },
+  // ---------------------------------------------------------------------
+  // Claude — the primary, with everything else as its safety net.
+  //
+  // Paid, but unlike `moonshot` below it sits at the HEAD of the fallback
+  // chain rather than being excluded from it. Setting ANTHROPIC_API_KEY is a
+  // deliberate act, and the point of this provider is to be preferred: when
+  // its quota runs out the router puts it on cooldown and the free providers
+  // behind it serve the same request until the window resets.
+  // ---------------------------------------------------------------------
+  anthropic: {
+    id: 'anthropic',
+    alias: 'claude',
+    name: 'Claude (Anthropic)',
+    website: 'https://claude.com',
+    transport: 'anthropic-sdk',
+    proxySupported: true,
+    isActive: hasApiKey('anthropic'),
+    billing: 'paid',
+    models: [
+      {
+        id: 'claude-opus-5',
+        name: 'Claude Opus 5',
+        displayName: 'Claude Opus 5 (1M context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 5,
+        note: 'Payant : $5 in / $25 out par Mtok',
+      },
+      {
+        id: 'claude-sonnet-5',
+        name: 'Claude Sonnet 5',
+        displayName: 'Claude Sonnet 5 (1M context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 2,
+        note: 'Payant : $2 in / $10 out par Mtok',
+      },
+      {
+        id: 'claude-haiku-4-5',
+        name: 'Claude Haiku 4.5',
+        displayName: 'Claude Haiku 4.5 (200k context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+        ],
+        costPerMTok: 1,
+        note: 'Payant : $1 in / $5 out par Mtok',
+      },
+    ],
+    rateLimit: { type: 'per-session' },
+  },
+
+  // ---------------------------------------------------------------------
+  // Paid provider. Present because its rate limits and context windows are
+  // far beyond any free tier, but it bills per token, so `billing: 'paid'`
+  // keeps routing away from it: it answers only a request that names it, or
+  // names one of the models below. The free path to the same weights is
+  // openrouter's `moonshotai/kimi-*:free`.
+  //
+  // Prices below are list rates per Mtok (input/output) as published in
+  // August 2026, recorded to make the cost visible at the call site — they
+  // are not fetched, so treat them as indicative, not billing truth.
+  // ---------------------------------------------------------------------
+  moonshot: {
+    id: 'moonshot',
+    alias: 'kimi',
+    name: 'Moonshot AI (Kimi)',
+    website: 'https://platform.kimi.ai',
+    transport: 'direct-http',
+    proxySupported: true,
+    isActive: hasApiKey('moonshot'),
+    billing: 'paid',
+    models: [
+      {
+        id: 'kimi-k3',
+        name: 'Kimi K3',
+        displayName: 'Kimi K3 (1M context, multimodal)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 3,
+        note: 'Payant : ~$3 in / $15 out par Mtok',
+      },
+      {
+        id: 'kimi-k2.6',
+        name: 'Kimi K2.6',
+        displayName: 'Kimi K2.6 (262k context)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+          { type: 'vision', supported: true },
+        ],
+        costPerMTok: 0.95,
+        note: 'Payant : ~$0.95 in / $4 out par Mtok',
+      },
+      {
+        id: 'kimi-k2.7-code',
+        name: 'Kimi K2.7 Code',
+        displayName: 'Kimi K2.7 Code (code-tuned)',
+        capabilities: [
+          { type: 'text', supported: true },
+          { type: 'streaming', supported: true },
+          { type: 'tool-calling', supported: true },
+        ],
+        costPerMTok: 0.95,
+        note: 'Payant. kimi-k2.5 et la série moonshot-v1 sont retirées au 31/08/2026 — absentes ici volontairement',
+      },
+    ],
     rateLimit: { type: 'unknown' },
   },
   gemini: {
@@ -265,7 +396,18 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
 // or bot-check is added upstream. Ones with no key configured are inactive and
 // skipped by canProviderServe, so an unkeyed install falls through to the free
 // anonymous providers exactly as before.
+//
+// `anthropic` leads: it is the primary, and everything after it is what serves
+// the request once its quota is spent. That it also bills per token is fine —
+// being in this list IS the opt-in, and it only appears here when a key is set.
+//
+// `moonshot` is deliberately absent for the opposite reason: nobody asked for
+// it to be primary, so reaching it must stay an explicit decision. A paid
+// provider is auto-routed only where it was deliberately placed, and the
+// last-resort branch in router.route — which ignores the requested model —
+// excludes every paid provider regardless.
 export const PROVIDER_FALLBACK_CHAIN = [
+  'anthropic',
   'groq',
   'cerebras',
   'gemini',

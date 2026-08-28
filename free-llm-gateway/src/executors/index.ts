@@ -3,11 +3,13 @@ import { HTTPExecutor } from './httpExecutor';
 import { PassthroughExecutor } from './passthroughExecutor';
 import { TheOldLlmExecutor } from './theOldLlmExecutor';
 import { FeloExecutor } from './feloExecutor';
+import { AnthropicExecutor, QuotaExhaustedError } from './anthropicExecutor';
 import { FREE_LLM_PROVIDERS } from '../providers/config';
 import { PROVIDER_ENDPOINTS } from '../providers/endpoints';
 import { getApiKey } from '../providers/apiKeys';
 
 export { BaseExecutor, HTTPExecutor, PassthroughExecutor, TheOldLlmExecutor, FeloExecutor };
+export { AnthropicExecutor, QuotaExhaustedError };
 
 /**
  * Executor factory - creates appropriate executor for a provider
@@ -46,6 +48,11 @@ export class ExecutorFactory {
       // the generic HTTPExecutor cannot express.
       case 'custom-http':
         return this.createCustomHTTPExecutor(providerId, provider);
+      // Claude via its own SDK: the typed error classes are what let quota
+      // exhaustion be told apart from a bad key, which is what decides whether
+      // the gateway may silently fail over to a free provider.
+      case 'anthropic-sdk':
+        return new AnthropicExecutor(providerId, provider.name, getApiKey(providerId));
 
       // The transports below are declared in the provider catalog but have no
       // executor yet. They must fail loudly: falling back to HTTPExecutor would
