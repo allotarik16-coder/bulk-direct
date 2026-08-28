@@ -1,17 +1,20 @@
 import { FreeLLMRouter } from './router/router';
 import { ModelDiscovery } from './discovery/modelDiscovery';
+import { ExecutorFactory } from './executors';
 import { FreeLLMProvider, LLMRequest, LLMResponse, HealthStatus, FreeLLMModel } from './types';
 import { FREE_LLM_PROVIDERS } from './providers/config';
 
 export class FreeLLMGateway {
   private router: FreeLLMRouter;
   private discovery: ModelDiscovery;
+  private executorFactory: ExecutorFactory;
   private cacheDurationMs: number;
 
   constructor(cacheDurationMs: number = 3600000) {
     this.cacheDurationMs = cacheDurationMs;
     this.router = new FreeLLMRouter();
     this.discovery = new ModelDiscovery(cacheDurationMs);
+    this.executorFactory = new ExecutorFactory();
   }
 
   /**
@@ -21,19 +24,11 @@ export class FreeLLMGateway {
     const { provider, model } = await this.router.route(request, strategy);
 
     try {
-      // Here you would call the actual executor for the provider
-      // For now, returning a mock response
-      const startTime = Date.now();
-      const latencyMs = Date.now() - startTime;
+      const executor = this.executorFactory.getExecutor(provider.id);
+      const response = await executor.execute({ ...request, model });
 
       this.router.recordSuccess(provider.id);
-
-      return {
-        providerId: provider.id,
-        modelId: model,
-        content: `[Mock response from ${provider.name} using model ${model}]`,
-        latencyMs,
-      };
+      return response;
     } catch (error) {
       this.router.recordFailure(provider.id, (error as Error).message);
       throw error;

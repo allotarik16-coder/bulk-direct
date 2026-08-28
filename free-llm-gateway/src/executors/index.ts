@@ -2,6 +2,7 @@ import { BaseExecutor } from './base';
 import { HTTPExecutor } from './httpExecutor';
 import { PassthroughExecutor } from './passthroughExecutor';
 import { FREE_LLM_PROVIDERS } from '../providers/config';
+import { PROVIDER_ENDPOINTS } from '../providers/endpoints';
 
 export { BaseExecutor, HTTPExecutor, PassthroughExecutor };
 
@@ -38,15 +39,20 @@ export class ExecutorFactory {
         return this.createHTTPExecutor(providerId, provider);
       case 'passthrough':
         return this.createPassthroughExecutor(providerId, provider);
+      // The transports below are declared in the provider catalog but have no
+      // executor yet. They must fail loudly: falling back to HTTPExecutor would
+      // POST OpenAI-shaped JSON at a page/WebSocket that does not speak it, and
+      // the resulting 4xx would look like a provider outage rather than a gap here.
       case 'browser-automation':
-        // TODO: Implement BrowserExecutor with Playwright
-        return this.createHTTPExecutor(providerId, provider); // Fallback for now
+        throw new Error(
+          `"${providerId}" needs a Playwright-based BrowserExecutor, which is not implemented yet.`
+        );
       case 'reverse-engineered':
-        // TODO: Implement ReverseEngineeredExecutor (WebSocket, SockJS, etc.)
-        return this.createHTTPExecutor(providerId, provider); // Fallback for now
+        throw new Error(
+          `"${providerId}" needs a WebSocket/SockJS executor, which is not implemented yet.`
+        );
       case 'local-cli':
-        // TODO: Implement LocalCLIExecutor
-        throw new Error(`Local CLI executors not yet implemented: ${providerId}`);
+        throw new Error(`"${providerId}" needs a LocalCLIExecutor, which is not implemented yet.`);
       default:
         throw new Error(`Unknown transport type: ${provider.transport}`);
     }
@@ -56,44 +62,28 @@ export class ExecutorFactory {
    * Create HTTP executor
    */
   private createHTTPExecutor(providerId: string, provider: any): BaseExecutor {
-    let endpoint = '';
-
-    switch (providerId) {
-      case 'opencode':
-        endpoint = 'https://opencode.ai/zen/v1/chat/completions';
-        break;
-      case 'theoldllm':
-        endpoint = 'https://theoldllm.vercel.app/api/chat';
-        break;
-      default:
-        endpoint = `https://${provider.website?.replace('https://', '').split('/')[0]}/api/chat`;
+    const entry = PROVIDER_ENDPOINTS[providerId];
+    if (!entry?.chat) {
+      throw new Error(
+        `No verified chat endpoint for "${providerId}". Add one to PROVIDER_ENDPOINTS before routing to it.`
+      );
     }
 
-    return new HTTPExecutor(providerId, provider.name, endpoint);
+    return new HTTPExecutor(providerId, provider.name, entry.chat, entry.models);
   }
 
   /**
    * Create passthrough executor
    */
   private createPassthroughExecutor(providerId: string, provider: any): BaseExecutor {
-    let endpoint = '';
-
-    switch (providerId) {
-      case 'uncloseai':
-        endpoint = 'https://api.uncloseai.com/v1/chat/completions';
-        break;
-      case 'aihorde':
-        endpoint = 'https://api.aihorde.net/v2/generate/text/async';
-        break;
-      default:
-        endpoint = provider.website || '';
+    const entry = PROVIDER_ENDPOINTS[providerId];
+    if (!entry?.chat) {
+      throw new Error(
+        `No verified chat endpoint for "${providerId}". Add one to PROVIDER_ENDPOINTS before routing to it.`
+      );
     }
 
-    if (!endpoint) {
-      throw new Error(`No endpoint configured for ${providerId}`);
-    }
-
-    return new PassthroughExecutor(providerId, provider.name, endpoint);
+    return new PassthroughExecutor(providerId, provider.name, entry.chat, entry.models);
   }
 
   /**

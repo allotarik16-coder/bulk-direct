@@ -7,11 +7,13 @@ import { LLMRequest, LLMResponse } from '../types';
  */
 export class PassthroughExecutor extends BaseExecutor {
   private endpoint: string;
+  private modelsEndpoint?: string;
   private dummyApiKey: string = 'dummy-key-for-passthrough';
 
-  constructor(providerId: string, providerName: string, endpoint: string) {
+  constructor(providerId: string, providerName: string, endpoint: string, modelsEndpoint?: string) {
     super(providerId, providerName);
     this.endpoint = endpoint;
+    this.modelsEndpoint = modelsEndpoint;
   }
 
   async execute(request: LLMRequest): Promise<LLMResponse> {
@@ -53,9 +55,12 @@ export class PassthroughExecutor extends BaseExecutor {
   }
 
   async healthCheck(): Promise<boolean> {
+    // Without a model-list endpoint there is nothing cheap to probe: the chat
+    // endpoint is POST-only, so a GET would report a false outage.
+    if (!this.modelsEndpoint) return true;
+
     try {
-      // For passthrough providers, try to fetch model list
-      const response = await this.fetchWithTimeout(`${this.endpoint}/models`, {
+      const response = await this.fetchWithTimeout(this.modelsEndpoint, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${this.dummyApiKey}`,

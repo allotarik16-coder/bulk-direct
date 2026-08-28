@@ -25,7 +25,7 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     website: 'https://duckduckgo.com/duckchat',
     transport: 'browser-automation',
     proxySupported: false,
-    isActive: true,
+    isActive: false, // no executor yet (see executors/index.ts)
     models: [
       { id: 'gpt-4o', name: 'GPT-4o', displayName: 'GPT-4o (via DuckDuckGo)', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
       { id: 'claude', name: 'Claude', displayName: 'Claude by Anthropic', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
@@ -39,7 +39,7 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     website: 'https://playground.ai.cloudflare.com',
     transport: 'reverse-engineered',
     proxySupported: false,
-    isActive: true,
+    isActive: false, // no executor yet (see executors/index.ts)
     models: [
       { id: 'glm-5.2', name: 'GLM 5.2', displayName: 'GLM 5.2', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
       { id: 'kimi-k2.7', name: 'Kimi K2.7 Code', displayName: 'Kimi K2.7 Code', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
@@ -55,7 +55,9 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     website: 'https://theoldllm.vercel.app',
     transport: 'browser-automation',
     proxySupported: true,
-    isActive: true,
+    // The request itself is plain HTTP, but the access token is minted by an
+    // embedded browser; without that step the endpoint answers 401.
+    isActive: false, // needs browser-based token generation, not implemented
     models: [
       { id: 'gpt-5.4', name: 'GPT-5.4', displayName: 'GPT-5.4', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
       { id: 'claude-opus', name: 'Claude Opus', displayName: 'Claude 4.6 Opus', capabilities: [{ type: 'text', supported: true }, { type: 'tool-calling', supported: true }], costPerMTok: 0 },
@@ -97,7 +99,7 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     website: 'https://felo.ai',
     transport: 'reverse-engineered',
     proxySupported: false,
-    isActive: true,
+    isActive: false, // no executor yet (see executors/index.ts)
     models: [
       { id: 'felo-chat', name: 'Felo Chat', displayName: 'Felo Chat/Search Aggregator', capabilities: [{ type: 'text', supported: true }, { type: 'streaming', supported: true }], costPerMTok: 0 },
     ],
@@ -110,7 +112,7 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
     website: 'https://amelia.chipotle.com',
     transport: 'reverse-engineered',
     proxySupported: false,
-    isActive: true,
+    isActive: false, // no executor yet (see executors/index.ts)
     models: [
       { id: 'pepper-ai', name: 'Pepper AI', displayName: 'Pepper AI by IPsoft Amelia', capabilities: [{ type: 'text', supported: true }], costPerMTok: 0 },
     ],
@@ -118,7 +120,9 @@ export const FREE_LLM_PROVIDERS: Record<string, FreeLLMProvider> = {
   },
 };
 
-export const PROVIDER_FALLBACK_CHAIN = ['opencode', 'theoldllm', 'duckduckgo', 'cloudflare', 'aihorde', 'uncloseai'];
+// Only providers with a working executor AND a transcribed endpoint belong here.
+// Adding a catalogued-but-unimplemented provider makes routing throw at execute().
+export const PROVIDER_FALLBACK_CHAIN = ['opencode', 'uncloseai', 'aihorde'];
 
 export const TRANSPORT_TYPE_PRIORITY: Record<string, number> = {
   'direct-http': 1,

@@ -3,11 +3,19 @@ import { LLMRequest, LLMResponse } from '../types';
 
 export class HTTPExecutor extends BaseExecutor {
   private endpoint: string;
+  private modelsEndpoint?: string;
   private apiKey?: string;
 
-  constructor(providerId: string, providerName: string, endpoint: string, apiKey?: string) {
+  constructor(
+    providerId: string,
+    providerName: string,
+    endpoint: string,
+    modelsEndpoint?: string,
+    apiKey?: string
+  ) {
     super(providerId, providerName);
     this.endpoint = endpoint;
+    this.modelsEndpoint = modelsEndpoint;
     this.apiKey = apiKey;
   }
 
@@ -44,12 +52,16 @@ export class HTTPExecutor extends BaseExecutor {
   }
 
   async healthCheck(): Promise<boolean> {
+    // The chat endpoint is POST-only, so probe the model list when there is one.
+    // Without it, report healthy rather than manufacturing an outage from a GET.
+    if (!this.modelsEndpoint) return true;
+
     try {
-      const response = await this.fetchWithTimeout(this.endpoint, {
+      const response = await this.fetchWithTimeout(this.modelsEndpoint, {
         method: 'GET',
         headers: this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {},
       });
-      return response.ok || response.status === 405; // 405 = Method Not Allowed (HEAD/GET not supported)
+      return response.ok;
     } catch {
       return false;
     }

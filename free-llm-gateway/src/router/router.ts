@@ -123,6 +123,9 @@ export class FreeLLMRouter {
    * Check if a provider can serve a specific model
    */
   private canProviderServe(provider: FreeLLMProvider, modelId: string): boolean {
+    // Catalogued but not routable: no executor, or no verified endpoint.
+    if (!provider.isActive) return false;
+
     const health = this.healthStatus.get(provider.id);
     if (health && !health.healthy && health.consecutiveFailures > 3) {
       return false; // Provider is too unhealthy

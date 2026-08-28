@@ -17,6 +17,7 @@ export interface FreeLLMModel {
   displayName: string;
   capabilities: ModelCapability[];
   costPerMTok?: number;
+  note?: string;
 }
 
 export interface ModelCapability {
@@ -41,7 +42,7 @@ export interface RateLimitConfig {
 
 export interface RoutingStrategy {
   name: string;
-  priority: (provider: FreeLLMProvider, model: string) => number;
+  priority: (provider: FreeLLMProvider, model?: string) => number;
   fallbackChain: string[];
 }
 

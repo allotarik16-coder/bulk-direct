@@ -1,5 +1,6 @@
 import { FreeLLMProvider, DiscoveredModel, FreeLLMModel } from '../types';
 import { FREE_LLM_PROVIDERS } from '../providers/config';
+import { PROVIDER_ENDPOINTS } from '../providers/endpoints';
 
 export class ModelDiscovery {
   private discoveredModels: Map<string, DiscoveredModel> = new Map();
@@ -112,28 +113,41 @@ export class ModelDiscovery {
   }
 
   /**
+   * fetch() with an abort-based timeout (RequestInit has no `timeout` field).
+   */
+  private async fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.discoveryTimeoutMs);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
    * Fetch models from AI Horde API
    */
   private async fetchAIHordeModels(): Promise<FreeLLMModel[]> {
     try {
-      const response = await fetch('https://aihorde.net/api/v2/models?type=text', {
-        timeout: this.discoveryTimeoutMs,
-      });
+      const url = PROVIDER_ENDPOINTS['aihorde']?.models;
+      if (!url) return FREE_LLM_PROVIDERS['aihorde'].models;
+
+      const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const data = (await response.json()) as any[];
-      return data
-        .filter((m) => m.active)
-        .map((m) => ({
-          id: m.name,
-          name: m.name,
-          displayName: m.name,
-          capabilities: [{ type: 'text' as const, supported: true }],
-          costPerMTok: 0,
-        }));
+      // oai.aihorde.net is OpenAI-compatible: { data: [{ id }, ...] }.
+      const payload = (await response.json()) as { data?: Array<{ id: string }> };
+      return (payload.data ?? []).map((m) => ({
+        id: m.id,
+        name: m.id,
+        displayName: m.id,
+        capabilities: [{ type: 'text' as const, supported: true }],
+        costPerMTok: 0,
+      }));
     } catch (error) {
       console.warn('Failed to fetch AI Horde models:', error);
       return FREE_LLM_PROVIDERS['aihorde'].models;
@@ -145,8 +159,10 @@ export class ModelDiscovery {
    */
   private async fetchUncloseAIModels(): Promise<FreeLLMModel[]> {
     try {
-      const response = await fetch('https://api.uncloseai.com/v1/models', {
-        timeout: this.discoveryTimeoutMs,
+      const url = PROVIDER_ENDPOINTS['uncloseai']?.models;
+      if (!url) return FREE_LLM_PROVIDERS['uncloseai'].models;
+
+      const response = await this.fetchWithTimeout(url, {
         headers: {
           Authorization: 'Bearer dummy-key-for-public-list',
         },

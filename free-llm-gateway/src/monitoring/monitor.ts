@@ -43,7 +43,7 @@ export class ProviderMonitor {
   private alerts: Map<string, Alert> = new Map();
   private alertHistory: Alert[] = [];
   private lastHealthCheck: Map<string, Date> = new Map();
-  private healthCheckTimer?: NodeJS.Timer;
+  private healthCheckTimer?: ReturnType<typeof setInterval>;
 
   constructor(config: Partial<MonitoringConfig> = {}) {
     this.config = {
